@@ -374,15 +374,7 @@ namespace OpenSlideNET
             ThrowHelper.CheckAndThrowError(_handle);
         }
 
-        /// <summary>
-        /// Get the bitmap of a selected region.
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
-        /// <returns>Byte array of the bitmap.</returns>
+
         public unsafe byte[] ReadRegion(int level, long x, long y, long width, long height)
         {
             EnsureNotDisposed();
@@ -413,17 +405,13 @@ namespace OpenSlideNET
                 ReadRegionInternal(level, x, y, width, height, pdata);
             }
         }
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void DangerousReadRegion(int level, long x, long y, long width, long height, IntPtr buffer)
         {
             EnsureNotDisposed();
             ReadRegionInternal(level, x, y, width, height, (void*)buffer);
         }
-
-        /// winston-wen@foxmail.com
-        /// I change this from private to public, because I NEED to use this.
-        public unsafe void ReadRegionInternal(int level, long x, long y, long width, long height, void* pointer)
+        private unsafe void ReadRegionInternal(int level, long x, long y, long width, long height, void* pointer)
         {
             Interop.ReadRegion(_handle, pointer, x, y, level, width, height);
             ThrowHelper.CheckAndThrowError(_handle);

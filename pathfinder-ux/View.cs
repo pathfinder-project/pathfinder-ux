@@ -17,7 +17,7 @@ namespace pathfinder_ux
     {
         public View()
         {
-            slide = OpenSlideImage.Open(@"C:\ki-67\1_08.03.2016_08.33.38.mrxs");
+            slide = OpenSlideImage.Open(@"C:\ki-67\1713365\Ki-67_H_10.mrxs");
         }
 
         public int VisionW { get; set; }

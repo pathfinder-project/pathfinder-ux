@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Collections.Generic;
 
 namespace OpenSlideNET
 {
@@ -9,11 +10,18 @@ namespace OpenSlideNET
     {
         internal static unsafe string StringFromNativeUtf8(IntPtr nativeUtf8)
         {
+            List<byte> ar = new List<byte>();
             if (nativeUtf8 == IntPtr.Zero)
                 return null;
-            int len = 0;
-            while (*(byte*)(nativeUtf8 + len) != 0) ++len;
-            return Encoding.UTF8.GetString((byte*)nativeUtf8, len);
+            //int len = 0;
+            //while (*(byte*)(nativeUtf8 + len) != 0) ++len;
+            //return Encoding.UTF8.GetString((byte*)nativeUtf8, 0, len);
+            for (int i = 0; *(byte*)(nativeUtf8 + i) != 0; ++i)
+            {
+                ar.Add(*(byte*)(nativeUtf8 + i));
+            }
+            ar.Add((byte)0);
+            return Encoding.UTF8.GetString(ar.ToArray());
         }
 
         internal ref struct UnsafeUtf8Encoder
