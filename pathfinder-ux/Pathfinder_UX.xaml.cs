@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -22,17 +23,13 @@ namespace pathfinder_ux
     /// </summary>
     public partial class Pathfinder_UX : Window
     {
-        private View view;
-        private bool isMouseLeftPressed = false;
-        private System.Windows.Point previousPosition = new System.Windows.Point();
+        private CanvasRenderer renderer;
+        private bool dragging = false;
 
         public Pathfinder_UX()
         {
             InitializeComponent();
-            view = new View();
-            view.LeftTopX = view.MaxWidth / 2;
-            view.LeftTopY = view.MaxHeight / 4;
-            ChangeScreen();
+            renderer = new CanvasRenderer(canvasBg);
         }
 
         /// <summary>
@@ -82,55 +79,41 @@ namespace pathfinder_ux
                 WindowState = WindowState.Normal;
         }
 
-        private void workspace_MouseMove(object sender, MouseEventArgs e)
+        private void canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (isMouseLeftPressed)
+            lock (renderer)
             {
-                System.Windows.Point currentPosition = e.GetPosition(workspace);
-                // Change 1: Multiply a correction ratio 0.8
-                // The value is human-tweaked.
-                view.LeftTopX -= (int)((currentPosition.X - previousPosition.X)*0.8);
-                view.LeftTopY += (int)((currentPosition.Y - previousPosition.Y)*0.8);
-
-                // Change 2: Update previousPosition
-                // If omitted, and if you are dragging to the same direction,
-                // you will feel that the image is out of your control.
-                previousPosition = currentPosition;
-                if (view.LeftTopY < 0)
-                    view.LeftTopY = 0;
-                UpdateWorkspaceBackground();
+                renderer.P = e.GetPosition(canvas);
             }
-            /**
-             * 我现在只能写出这种精度的拖动。完全对准的拖动还是实现不出来。
-             * 精度提高的原因是两处改动，已经注释在代码里。
-             * 以后有精力慢慢实现吧。
-             */
         }
 
-        private void workspace_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            previousPosition = e.GetPosition(workspace);
-            isMouseLeftPressed = true;
+            renderer.MouseLeftPress(e.GetPosition(canvas));
         }
 
-        private void workspace_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            isMouseLeftPressed = false;
+            renderer.MouseLeftRelease();
         }
 
-        private void ChangeScreen()
+        private void canvas_MouseLeave(object sender, MouseEventArgs e)
         {
-            int h = 0, w = 0;
-            Helper.CurrentScreenHeightWidth(ref h, ref w);
-            view.VisionH = h;
-            view.VisionW = w;
-            view.ReallocBgraData();
-            UpdateWorkspaceBackground();
+            renderer.MouseLeftRelease();
         }
 
-        private void UpdateWorkspaceBackground()
+        private void canvas_Loaded(object sender, RoutedEventArgs e)
         {
-            workspace_bg.ImageSource = view.LoadVision();
+            renderer.CanvasH = canvas.ActualHeight;
+            renderer.CanvasW = canvas.ActualWidth;
+            renderer.SlidePath = @"C:\ki-67\1713365\Ki-67_H_10.mrxs";
+        }
+
+        private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            renderer.CanvasH = canvas.ActualHeight;
+            renderer.CanvasW = canvas.ActualWidth;
+            renderer.Render();
         }
     }
 }

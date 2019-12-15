@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace pathfinder_ux
 {
@@ -131,6 +133,28 @@ namespace pathfinder_ux
         }
 
         public static int BMP_BGRA_DATA_OFFSET = 122;
+
+        /// <summary>
+        /// 获取一个WPF控件的宽高，以像素计。
+        /// NOTE: WPF默认获取设备无关长度（每单位1/96英寸）。需要转化为像素。
+        /// </summary>
+        /// <param name="elem">要获取宽高的控件</param>
+        /// <returns></returns>
+        public static Size devIndepLen2px(UIElement elem)
+        {
+            Matrix transformToDevice;
+            var source = PresentationSource.FromVisual(elem);
+            if (source != null)
+                transformToDevice = source.CompositionTarget.TransformToDevice;
+            else
+                using (var source2 = new HwndSource(new HwndSourceParameters()))
+                    transformToDevice = source2.CompositionTarget.TransformToDevice;
+
+            if (elem.DesiredSize == new Size())
+                elem.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+            return (Size)transformToDevice.Transform((Vector)elem.DesiredSize);
+        }
 
         #region Utilities of Mouse cursor position
         [DllImport("user32.dll")]

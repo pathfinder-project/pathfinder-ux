@@ -6,12 +6,19 @@
         xmlns:local="clr-namespace:pathfinder_ux"
         mc:Ignorable="d"
         Title="Pathfinder切片分析客户端" Height="1024" Width="1280" FontSize="14" 
-        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="None" MinWidth="1024" MinHeight="768">
-    <Window.Background>
-        <ImageBrush/>
-    </Window.Background>
-    <DockPanel Margin="0,0,0,0" Grid.RowSpan="2" Grid.ColumnSpan="3">
-        <Grid DockPanel.Dock="Top">
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="None" MinWidth="1024" MinHeight="768" Background="#FF947B89">
+    <Grid Margin="0,0,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="60"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="360"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="32"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
             <Grid.Background>
                 <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.MenuBarColorKey}}"/>
             </Grid.Background>
@@ -59,7 +66,7 @@
                 </StackPanel>
             </Button>
         </Grid>
-        <Grid DockPanel.Dock="Left" Width="60" HorizontalAlignment="Left" Background="#FFF4F0E6">
+        <Grid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Background="#FFF4F0E6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
@@ -118,7 +125,7 @@
 
 
         </Grid>
-        <Grid DockPanel.Dock="Right" Width="300" HorizontalAlignment="Right" Background="#FF96CEB4">
+        <Grid Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
@@ -140,27 +147,22 @@
                 </TabItem>
             </TabControl>
         </Grid>
-        <StatusBar DockPanel.Dock="Bottom" Height="30" VerticalAlignment="Bottom" Margin="0" Background="#FFFFAD60"/>
-        <!--<ItemsControl Width="{Binding W}" Height="{Binding H}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Canvas />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Rectangle Canvas.Left="{Binding Path=X}" Canvas.Top="{Binding Path=Y}" Canvas.ZIndex="{Binding Path=Z}" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>-->
-        <Canvas x:Name="workspace" 
-                MouseMove="workspace_MouseMove" 
-                MouseLeftButtonDown="workspace_MouseLeftButtonDown" 
-                MouseLeftButtonUp="workspace_MouseLeftButtonUp">
-            <Canvas.Background>
-                <ImageBrush x:Name="workspace_bg" Stretch="None" />
-            </Canvas.Background>
-        </Canvas>
-        
-    </DockPanel>
+        <Grid x:Name="canvasRegion" Grid.Row="1" Grid.Column="1">
+            <Canvas x:Name="canvas" 
+                MouseMove="canvas_MouseMove" 
+                ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ClipToBounds="True" MouseLeftButtonDown="canvas_MouseLeftButtonDown" MouseLeftButtonUp="canvas_MouseLeftButtonUp" MouseLeave="canvas_MouseLeave" Loaded="canvas_Loaded" SizeChanged="canvas_SizeChanged">
+                <Canvas.Background>
+                    <ImageBrush x:Name="canvasBg" Stretch="UniformToFill"/>
+                </Canvas.Background>
+            </Canvas>
+        </Grid>
+        <Grid Grid.Row="2" Grid.Column="1">
+            <StatusBar Margin="0" Background="#dcdcdc">
+                <TextBlock x:Name="statusBarTextBlock" TextWrapping="Wrap" Text=""/>
+            </StatusBar>
+        </Grid>
+
+    </Grid>
 </Window>

@@ -124,7 +124,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Helper.cs" />
+    <Compile Include="src\Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\DeepZoomGeneratorFormatExtensions.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\OpenSlideImageAssociatedImageExtensions.cs" />
@@ -140,7 +140,7 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="View.cs" />
+    <Compile Include="src\CanvasRenderer.cs" />
     <Page Include="Pathfinder_UX.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
