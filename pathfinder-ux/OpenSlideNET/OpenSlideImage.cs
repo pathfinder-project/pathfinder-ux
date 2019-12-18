@@ -395,6 +395,15 @@ namespace OpenSlideNET
             return data;
         }
 
+        /// <summary>
+        /// 读取一块数字切片到一段缓冲区中.
+        /// </summary>
+        /// <param name="level">缩放级别, 从0到LevelCount-1, 由大到小.</param>
+        /// <param name="x">0级缩放下的左上角横坐标</param>
+        /// <param name="y">0级缩放下的左上角纵坐标</param>
+        /// <param name="width">输出宽度, 单位为像素. i.e. 不管什么缩放级别, 都输出这么宽</param>
+        /// <param name="height">输出高度, 单位为像素. i.e. 不管什么缩放级别, 都输出这么高</param>
+        /// <param name="buffer">目标缓冲区</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public unsafe void DangerousReadRegion(int level, long x, long y, long width, long height, ref byte buffer)
         {

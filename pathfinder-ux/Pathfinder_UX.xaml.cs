@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using Microsoft.Win32;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -30,29 +31,6 @@ namespace pathfinder_ux
         {
             InitializeComponent();
             renderer = new CanvasRenderer(canvasBg);
-        }
-
-        /// <summary>
-        /// 单击按钮关闭窗口
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void button_close_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-        private void button_maximize_Click(object sender, RoutedEventArgs e)
-        {
-            if (WindowState != WindowState.Maximized)
-                WindowState = WindowState.Maximized;
-            else
-                WindowState = WindowState.Normal;
-        }
-
-        private void button_minimize_Click(object sender, RoutedEventArgs e)
-        {
-            WindowState = WindowState.Minimized;
         }
 
         /// <summary>
@@ -81,39 +59,72 @@ namespace pathfinder_ux
 
         private void canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            lock (renderer)
+            if (dragging)
             {
-                renderer.P = e.GetPosition(canvas);
+                renderer.OnMouseDrag(e.GetPosition(canvas));
             }
         }
 
         private void canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            renderer.MouseLeftPress(e.GetPosition(canvas));
+            dragging = true;
+            renderer.OnMouseLeftPress(e.GetPosition(canvas));
         }
 
         private void canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            renderer.MouseLeftRelease();
+            dragging = false;
         }
 
         private void canvas_MouseLeave(object sender, MouseEventArgs e)
         {
-            renderer.MouseLeftRelease();
+            dragging = false;
         }
 
         private void canvas_Loaded(object sender, RoutedEventArgs e)
         {
-            renderer.CanvasH = canvas.ActualHeight;
-            renderer.CanvasW = canvas.ActualWidth;
-            renderer.SlidePath = @"C:\ki-67\1713365\Ki-67_H_10.mrxs";
+            renderer.OnCanvasResize(canvas.ActualHeight, canvas.ActualWidth);
         }
 
         private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            renderer.CanvasH = canvas.ActualHeight;
-            renderer.CanvasW = canvas.ActualWidth;
-            renderer.Render();
+            renderer.OnCanvasResize(canvas.ActualHeight, canvas.ActualWidth);
         }
+
+        private void canvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            // 是与canvas左上角的WPF距离向量
+            System.Windows.Point P = e.GetPosition(canvas);
+            int scroll = e.Delta;
+            renderer.OnMouseScroll(P, scroll);
+        }
+
+        private void menu_file_open_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Multiselect = false;
+            Nullable<bool> result = dlg.ShowDialog();
+            if (result == true)
+            {
+                string path = dlg.FileName;
+                renderer.Path = path;
+            }
+        }
+
+        private void menu_file_close_Click(object sender, RoutedEventArgs e)
+        {
+            renderer.Dispose();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            renderer.Dispose();
+
+            // 即使renderer停止计时, 仍可能有至少1帧正在渲染;
+            // 因为计时器只是到时间把任务投放到线程池中, 然后就不管了.
+            // 干脆强行退出, 以避免程序报错.
+            Environment.Exit(0);
+        }
+
     }
 }

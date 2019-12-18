@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:pathfinder_ux"
         mc:Ignorable="d"
         Title="Pathfinder切片分析客户端" Height="1024" Width="1280" FontSize="14" 
-        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="None" MinWidth="1024" MinHeight="768" Background="#FF947B89">
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" MinWidth="1024" MinHeight="768" Background="#FF947B89" Closing="Window_Closing">
     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="60"/>
@@ -22,49 +22,16 @@
             <Grid.Background>
                 <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.MenuBarColorKey}}"/>
             </Grid.Background>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="32"/>
-                <ColumnDefinition Width="32"/>
-                <ColumnDefinition Width="32"/>
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
-            </Grid.RowDefinitions>
-            <Menu x:Name="menu_main" VerticalAlignment="Top" VerticalContentAlignment="Center" Padding="6,6" FontSize="14" Height="32" 
-                  PreviewMouseDown="menu_main_PreviewMouseDown"
-                  MouseDoubleClick="menu_main_MouseDoubleClick">
-                <MenuItem x:Name="menu_open" Header="文件">
-
-                </MenuItem>
-                <MenuItem x:Name="menu_view" Header="视图">
-
+            <Menu x:Name="menu_main" VerticalAlignment="Center" 
+                  VerticalContentAlignment="Center" FontSize="14" Height="20" Margin="10,0,0,0">
+                <MenuItem x:Name="menu_file" Header="文件">
+                    <MenuItem x:Name="menu_file_open" Header="打开" Click="menu_file_open_Click"/>
+                    <MenuItem x:Name="menu_file_close" Header="关闭" Click="menu_file_close_Click"/>
                 </MenuItem>
                 <MenuItem x:Name="menu_analysis" Header="分析">
-
-                </MenuItem>
-                <MenuItem x:Name="menu_statistics" Header="报表">
-
+                    <MenuItem x:Name="menu_ihc_nuclei_counting" Header="免疫组化核染计数"/>
                 </MenuItem>
             </Menu>
-            <Button Grid.Column="1" x:Name="button_minimize" Height="30" Width="30" Margin="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}"
-                    Click="button_minimize_Click">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-minimize-window-30.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Column="2" x:Name="button_maximize" Height="30" Width="30" Margin="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}"
-                    Click="button_maximize_Click">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-maximize-window-30.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Column="3" x:Name="button_close" Height="30" Width="30" Margin="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}"
-                    Click="button_close_Click">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-close-window-30.png"/>
-                </StackPanel>
-            </Button>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Background="#FFF4F0E6">
             <Grid.ColumnDefinitions>
@@ -152,7 +119,7 @@
                 MouseMove="canvas_MouseMove" 
                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                ClipToBounds="True" MouseLeftButtonDown="canvas_MouseLeftButtonDown" MouseLeftButtonUp="canvas_MouseLeftButtonUp" MouseLeave="canvas_MouseLeave" Loaded="canvas_Loaded" SizeChanged="canvas_SizeChanged">
+                ClipToBounds="True" MouseLeftButtonDown="canvas_MouseLeftButtonDown" MouseLeftButtonUp="canvas_MouseLeftButtonUp" MouseLeave="canvas_MouseLeave" Loaded="canvas_Loaded" SizeChanged="canvas_SizeChanged" MouseWheel="canvas_MouseWheel">
                 <Canvas.Background>
                     <ImageBrush x:Name="canvasBg" Stretch="UniformToFill"/>
                 </Canvas.Background>
