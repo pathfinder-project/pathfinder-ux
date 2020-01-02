@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 
-namespace pathfinder_ux
+namespace PathFinder
 {
     /// <summary>
     /// App.xaml 的交互逻辑

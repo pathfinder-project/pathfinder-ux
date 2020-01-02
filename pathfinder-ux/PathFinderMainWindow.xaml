@@ -1,17 +1,17 @@
-﻿<Window x:Class="pathfinder_ux.Pathfinder_UX"
+﻿<Window x:Class="PathFinder.PathFinderMainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:pathfinder_ux"
+        xmlns:local="clr-namespace:PathFinder"   
         mc:Ignorable="d"
         Title="Pathfinder切片分析客户端" Height="1024" Width="1280" FontSize="14" 
         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" MinWidth="1024" MinHeight="768" Background="#FF947B89" Closing="Window_Closing">
     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="60"/>
+            <ColumnDefinition Width="0"/>
             <ColumnDefinition/>
-            <ColumnDefinition Width="360"/>
+            <ColumnDefinition Width="300"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="32"/>
@@ -33,8 +33,9 @@
                 </MenuItem>
             </Menu>
         </Grid>
+        
         <Grid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Background="#FFF4F0E6">
-            <Grid.ColumnDefinitions>
+            <!--<Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
@@ -88,22 +89,21 @@
                 <StackPanel Orientation="Horizontal" Margin="0">
                     <Image Source="assets/icons8-movie-projector-100.png"/>
                 </StackPanel>
-            </Button>
-
-
+            </Button>-->
         </Grid>
+        
         <Grid Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="2*"/>
                 <RowDefinition Height="1*"/>
+                <RowDefinition Height="2*"/>
             </Grid.RowDefinitions>
             <TabControl Grid.Row="0" x:Name="tabControlRightUpper" Margin="0">
-                <TabItem x:Name="tab_layers" Header="图层">
+                <!--<TabItem x:Name="tab_layers" Header="图层">
                     <Grid Background="#FFE5E5E5"/>
-                </TabItem>
+                </TabItem>-->
                 <TabItem x:Name="tab_properties"  Header="属性">
                     <Grid Background="#FFE5E5E5"/>
                 </TabItem>
@@ -114,14 +114,17 @@
                 </TabItem>
             </TabControl>
         </Grid>
-        <Grid x:Name="canvasRegion" Grid.Row="1" Grid.Column="1">
-            <Canvas x:Name="canvas" 
-                MouseMove="canvas_MouseMove" 
-                ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                ClipToBounds="True" MouseLeftButtonDown="canvas_MouseLeftButtonDown" MouseLeftButtonUp="canvas_MouseLeftButtonUp" MouseLeave="canvas_MouseLeave" Loaded="canvas_Loaded" SizeChanged="canvas_SizeChanged" MouseWheel="canvas_MouseWheel">
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Canvas x:Name="canvas"
+                    Loaded="canvas_Loaded"
+                    MouseMove="canvas_MouseMove"
+                    MouseLeftButtonDown="canvas_MouseLeftButtonDown"
+                    MouseLeftButtonUp="canvas_MouseLeftButtonUp"
+                    MouseLeave="canvas_MouseLeave"
+                    MouseWheel="canvas_MouseWheel"
+                    SizeChanged="canvas_SizeChanged" ScrollViewer.VerticalScrollBarVisibility="Disabled">
                 <Canvas.Background>
-                    <ImageBrush x:Name="canvasBg" Stretch="UniformToFill"/>
+                    <ImageBrush x:Name="canvasBg"></ImageBrush>
                 </Canvas.Background>
             </Canvas>
         </Grid>

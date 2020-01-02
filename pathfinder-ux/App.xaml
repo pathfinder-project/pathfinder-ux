@@ -1,8 +1,8 @@
-﻿<Application x:Class="pathfinder_ux.App"
+﻿<Application x:Class="PathFinder.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:pathfinder_ux"
-             StartupUri="Pathfinder_UX.xaml">
+             xmlns:local="clr-namespace:PathFinder"
+             StartupUri="PathFinderMainWindow.xaml">
     <Application.Resources>
 
         <ResourceDictionary>

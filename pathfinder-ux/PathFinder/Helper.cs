@@ -3,30 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Interop;
 using System.Windows.Media;
 
-namespace pathfinder_ux
+namespace PathFinder
 {
     public static class Helper
     {
         /// <summary>
-        /// 
-        /// References: 
-        /// * Difference between ref and out: https://stackoverflow.com/a/388467
-        /// * Getting the resolution of CURRENT screen: https://stackoverflow.com/a/2902734
+        /// 获取鼠标的像素坐标
         /// </summary>
-        /// <param name="window"></param>
-        /// <param name="Height">Output height</param>
-        /// <param name="Width">Output width</param>
-        /// 
-        public static void CurrentScreenHeightWidth(ref int Height, ref int Width)
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        public static void GetMousePosition(ref int x, ref int y)
         {
-            Height = (int)SystemParameters.VirtualScreenHeight;
-            Width = (int)SystemParameters.VirtualScreenWidth;
+            Win32Point w32Mouse = new Win32Point();
+            GetCursorPos(ref w32Mouse);
+            x = w32Mouse.X;
+            y = w32Mouse.Y;
+        }
+
+        /// <summary>
+        /// 获取框架式UI元素的像素宽高(或横纵坐标)
+        /// </summary>
+        /// <param name="elem"></param>
+        /// <param name="x_wpf"></param>
+        /// <param name="y_wpf"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        public static void GetPixelXY(FrameworkElement elem, double x_wpf, double y_wpf, ref int x, ref int y)
+        {
+            var src = PresentationSource.FromVisual(elem);
+            Matrix tran = src.CompositionTarget.TransformToDevice;
+            Vector vec = new Vector { X = x_wpf, Y = y_wpf };
+            Vector px_vec = tran.Transform(vec);
+            x = (int)px_vec.X;
+            y = (int)px_vec.Y;
         }
 
         /// <summary>
@@ -37,7 +53,7 @@ namespace pathfinder_ux
         /// <param name="bgra_data"></param>
         /// <param name="w"></param>
         /// <param name="h"></param>
-        public static void init_bgra_header(byte[] bgra_data, int w, int h)
+        public static void InitBgraHeader(byte[] bgra_data, int w, int h)
         {
             int img_byte_len = w * h * 4;
             #region BMP header (14 Bytes)
@@ -132,47 +148,32 @@ namespace pathfinder_ux
             #endregion
         }
 
-        public static int BMP_BGRA_DATA_OFFSET = 122;
+        public static readonly int BMP_BGRA_DATA_OFFSET = 122;
 
-        /// <summary>
-        /// 获取一个WPF控件的宽高，以像素计。
-        /// NOTE: WPF默认获取设备无关长度（每单位1/96英寸）。需要转化为像素。
-        /// </summary>
-        /// <param name="elem">要获取宽高的控件</param>
-        /// <returns></returns>
-        public static Size devIndepLen2px(UIElement elem)
-        {
-            Matrix transformToDevice;
-            var source = PresentationSource.FromVisual(elem);
-            if (source != null)
-                transformToDevice = source.CompositionTarget.TransformToDevice;
-            else
-                using (var source2 = new HwndSource(new HwndSourceParameters()))
-                    transformToDevice = source2.CompositionTarget.TransformToDevice;
-
-            if (elem.DesiredSize == new Size())
-                elem.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-
-            return (Size)transformToDevice.Transform((Vector)elem.DesiredSize);
-        }
-
-        #region Utilities of Mouse cursor position
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool GetCursorPos(ref Win32Point pt);
+        private static extern bool GetCursorPos(ref Win32Point pt);
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct Win32Point
+        private struct Win32Point
         {
             public Int32 X;
             public Int32 Y;
         };
-        public static Point GetMousePosition()
+
+        public static void FillWith<T>(this T[] a, T val)
         {
-            Win32Point w32Mouse = new Win32Point();
-            GetCursorPos(ref w32Mouse);
-            return new Point(w32Mouse.X, w32Mouse.Y);
+            if (a == null) { throw new ArgumentNullException("a"); }
+            int len = a.Length;
+            if (len == 0) return;
+            a[0] = val;
+            int cnt;
+            for (cnt = 1; cnt <= len / 2; cnt *= 2)
+            {
+                Array.Copy(a, 0, a, cnt, len - cnt);
+            }
+            Array.Copy(a, 0, a, cnt, len - cnt);
         }
-        #endregion
+        
     }
 }

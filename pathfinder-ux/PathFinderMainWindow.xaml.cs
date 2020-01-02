@@ -17,20 +17,18 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using OpenSlideNET;
 
-namespace pathfinder_ux
+namespace PathFinder
 {
-    /// <summary>
-    /// Pathfinder_UX.xaml 的交互逻辑
-    /// </summary>
-    public partial class Pathfinder_UX : Window
+
+    public partial class PathFinderMainWindow : Window
     {
-        private CanvasRenderer renderer;
+        private Scene scene;
         private bool dragging = false;
 
-        public Pathfinder_UX()
+        public PathFinderMainWindow()
         {
             InitializeComponent();
-            renderer = new CanvasRenderer(canvasBg);
+            scene = new Scene(canvas, canvasBg, 15);
         }
 
         /// <summary>
@@ -61,14 +59,14 @@ namespace pathfinder_ux
         {
             if (dragging)
             {
-                renderer.OnMouseDrag(e.GetPosition(canvas));
+                scene.DuringDrag();
             }
         }
 
         private void canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             dragging = true;
-            renderer.OnMouseLeftPress(e.GetPosition(canvas));
+            scene.BeginDrag();
         }
 
         private void canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -83,20 +81,19 @@ namespace pathfinder_ux
 
         private void canvas_Loaded(object sender, RoutedEventArgs e)
         {
-            renderer.OnCanvasResize(canvas.ActualHeight, canvas.ActualWidth);
+            scene.Resize(canvas.ActualWidth, canvas.ActualHeight);
         }
 
         private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            renderer.OnCanvasResize(canvas.ActualHeight, canvas.ActualWidth);
+            scene.Resize(canvas.ActualWidth, canvas.ActualHeight);
         }
 
         private void canvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             // 是与canvas左上角的WPF距离向量
-            System.Windows.Point P = e.GetPosition(canvas);
             int scroll = e.Delta;
-            renderer.OnMouseScroll(P, scroll);
+            scene.Zoom(scroll);
         }
 
         private void menu_file_open_Click(object sender, RoutedEventArgs e)
@@ -107,22 +104,23 @@ namespace pathfinder_ux
             if (result == true)
             {
                 string path = dlg.FileName;
-                renderer.Path = path;
+                scene.LoadSlide(path);
             }
         }
 
         private void menu_file_close_Click(object sender, RoutedEventArgs e)
         {
-            renderer.Dispose();
+            scene.Dispose();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            renderer.Dispose();
+            //renderer.Dispose();
 
             // 即使renderer停止计时, 仍可能有至少1帧正在渲染;
             // 因为计时器只是到时间把任务投放到线程池中, 然后就不管了.
             // 干脆强行退出, 以避免程序报错.
+            scene.Dispose();
             Environment.Exit(0);
         }
 

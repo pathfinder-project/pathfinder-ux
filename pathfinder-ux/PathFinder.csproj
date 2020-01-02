@@ -13,7 +13,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>pathfinder_ux</RootNamespace>
     <AssemblyName>pathfinder-ux</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -129,7 +129,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="src\Helper.cs" />
+    <Compile Include="PathFinder\DataStructure\IDataStructure.cs" />
+    <Compile Include="PathFinder\DataStructure\IntTuple.cs" />
+    <Compile Include="PathFinder\DataStructure\SceneGeometry.cs" />
+    <Compile Include="PathFinder\DataStructure\MapGeometry.cs" />
+    <Compile Include="PathFinder\Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\DeepZoomGeneratorFormatExtensions.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\OpenSlideImageAssociatedImageExtensions.cs" />
@@ -145,8 +149,11 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="src\CanvasRenderer.cs" />
-    <Page Include="Pathfinder_UX.xaml">
+    <Compile Include="PathFinder\CanvasRenderer.cs" />
+    <Compile Include="PathFinder\Layer\ILayer.cs" />
+    <Compile Include="PathFinder\Layer\ImageLayer.cs" />
+    <Compile Include="PathFinder\Scene.cs" />
+    <Page Include="PathFinderMainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -154,8 +161,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Pathfinder_UX.xaml.cs">
-      <DependentUpon>Pathfinder_UX.xaml</DependentUpon>
+    <Compile Include="PathFinderMainWindow.xaml.cs">
+      <DependentUpon>PathFinderMainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Simple Styles.xaml">
@@ -181,7 +188,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="OpenSlideNET\ImageExtensions\OpenSlideNET.ImageExtensions.csproj" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
