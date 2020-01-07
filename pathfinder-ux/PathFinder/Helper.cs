@@ -28,24 +28,6 @@ namespace PathFinder
         }
 
         /// <summary>
-        /// 获取框架式UI元素的像素宽高(或横纵坐标)
-        /// </summary>
-        /// <param name="elem"></param>
-        /// <param name="x_wpf"></param>
-        /// <param name="y_wpf"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        public static void GetPixelXY(FrameworkElement elem, double x_wpf, double y_wpf, ref int x, ref int y)
-        {
-            var src = PresentationSource.FromVisual(elem);
-            Matrix tran = src.CompositionTarget.TransformToDevice;
-            Vector vec = new Vector { X = x_wpf, Y = y_wpf };
-            Vector px_vec = tran.Transform(vec);
-            x = (int)px_vec.X;
-            y = (int)px_vec.Y;
-        }
-
-        /// <summary>
         /// Add/Reset BMP file header to <pre>bgra_data</pre>.
         /// Idea from: https://stackoverflow.com/a/44023462
         /// See data sheet: https://en.wikipedia.org/wiki/BMP_file_format#Example_2
@@ -174,6 +156,15 @@ namespace PathFinder
             }
             Array.Copy(a, 0, a, cnt, len - cnt);
         }
-        
+
+        public static void ToScreenPixel(FrameworkElement fe, double a, double b, ref int ap, ref int bp)
+        {
+            var src = PresentationSource.FromVisual(fe);
+            var tran = src.CompositionTarget.TransformToDevice;
+            Vector vec = new Vector { X = a, Y = b };
+            Vector px_vec = tran.Transform(vec);
+            ap = (int)px_vec.X;
+            bp = (int)px_vec.Y;
+        }
     }
 }

@@ -1,34 +1,48 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using Microsoft.Win32;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using OpenSlideNET;
+
+using PathFinder.Controller;
+using PathFinder.Controller.Actions;
 
 namespace PathFinder
 {
+    enum BrowsingState
+    {
+        NoSlide,
+        Locked,
+        Free,
+        Moving,
+    }
+
+    enum DrawingState
+    {
+        NotDrawing,
+        DrawingPolygon,
+    }
 
     public partial class PathFinderMainWindow : Window
     {
-        private Scene scene;
-        private bool dragging = false;
+        private SceneBlender blender;
+        private ActionQueue aq;
+
+        private BrowsingState brs;
+        private DrawingState drs;
+
+        private int x0 = 0;
+        private int x1 = 0;
+
+        private int y0 = 0;
+        private int y1 = 0;
 
         public PathFinderMainWindow()
         {
+            aq = ActionQueue.Singleton();
             InitializeComponent();
-            scene = new Scene(canvas, canvasBg, 15);
+            brs = BrowsingState.NoSlide;
+            drs = DrawingState.NotDrawing;
+            blender = new SceneBlender(canvas, canvasBg, 15);
         }
 
         /// <summary>
@@ -57,43 +71,75 @@ namespace PathFinder
 
         private void canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (dragging)
+            if (brs == BrowsingState.Moving)
             {
-                scene.DuringDrag();
+                var act = new Move();
+                Helper.GetMousePosition(ref x1, ref y1);
+                act.dX = x0 - x1;
+                act.dY = y0 - y1;
+                aq.Submit(act);
+                x0 = x1;
+                y0 = y1;
             }
         }
 
         private void canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            dragging = true;
-            scene.BeginDrag();
+            //int x = 0, y = 0;
+            //Helper.GetMousePosition(ref x, ref y);
+            //Console.WriteLine("mx={0}, my={1}", x, y);
+            if (brs == BrowsingState.Free)
+            {
+                canvas.Cursor = Cursors.ScrollAll;
+                brs = BrowsingState.Moving;
+                Helper.GetMousePosition(ref x0, ref y0);
+            } 
         }
 
         private void canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            dragging = false;
+            if (brs == BrowsingState.Moving)
+            {
+                brs = BrowsingState.Free;
+                canvas.Cursor = Cursors.Hand;
+            }  
         }
 
         private void canvas_MouseLeave(object sender, MouseEventArgs e)
         {
-            dragging = false;
-        }
-
-        private void canvas_Loaded(object sender, RoutedEventArgs e)
-        {
-            scene.Resize(canvas.ActualWidth, canvas.ActualHeight);
+            if (brs == BrowsingState.Moving)
+            {
+                brs = BrowsingState.Free;
+                canvas.Cursor = Cursors.Hand;
+            }
         }
 
         private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            scene.Resize(canvas.ActualWidth, canvas.ActualHeight);
+            if (brs == BrowsingState.Free)
+            {
+                var act = new Resize();
+                Helper.ToScreenPixel(canvas, canvas.ActualWidth, canvas.ActualHeight, ref act.W, ref act.H);
+                aq.Submit(act);
+            }
         }
 
         private void canvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             // 是与canvas左上角的WPF距离向量
-            int scroll = e.Delta;
-            scene.Zoom(scroll);
+            if (brs == BrowsingState.Free)
+            {
+                int scroll = e.Delta;
+
+                var act = new Zoom();
+                act.nScroll = scroll;
+                var p = e.GetPosition(canvas);
+
+                // GetPosition得到的坐标是以「左下角」为原点的.
+                // 需要换算为以左上角为原点.
+                Helper.ToScreenPixel(canvas, p.X, canvas.ActualHeight - p.Y, ref act.X, ref act.Y);
+                aq.Submit(act);
+            }
         }
 
         private void menu_file_open_Click(object sender, RoutedEventArgs e)
@@ -103,25 +149,27 @@ namespace PathFinder
             Nullable<bool> result = dlg.ShowDialog();
             if (result == true)
             {
-                string path = dlg.FileName;
-                scene.LoadSlide(path);
+                var act = new LoadSlide();
+                act.Path = dlg.FileName;
+                Helper.ToScreenPixel(canvas, canvas.ActualWidth, canvas.ActualHeight, ref act.W, ref act.H);
+                Console.WriteLine("W={0}, H={1}", act.W, act.H);
+                aq.Submit(act);
+                blender.Start();
+                brs = BrowsingState.Free;
+                canvas.Cursor = Cursors.Hand;
             }
         }
 
         private void menu_file_close_Click(object sender, RoutedEventArgs e)
         {
-            scene.Dispose();
+            blender.Stop();
+            brs = BrowsingState.NoSlide;
+            canvas.Cursor = Cursors.Arrow;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            //renderer.Dispose();
-
-            // 即使renderer停止计时, 仍可能有至少1帧正在渲染;
-            // 因为计时器只是到时间把任务投放到线程池中, 然后就不管了.
-            // 干脆强行退出, 以避免程序报错.
-            scene.Dispose();
-            Environment.Exit(0);
+            blender.Stop();
         }
 
     }

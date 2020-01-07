@@ -9,6 +9,6 @@ namespace PathFinder.DataStructure
     interface IDataStructure
     {
         void Init();
-        void CopyValuesFrom(IDataStructure d);
+        void Clone(IDataStructure d);
     }
 }

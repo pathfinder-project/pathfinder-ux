@@ -6,21 +6,21 @@ using System.Threading.Tasks;
 
 namespace PathFinder.DataStructure
 {
-    class IntTuple: IDataStructure
+    class PixelCoordinate: IDataStructure
     {
-        public int X;
-        public int Y;
+        public int X { get; set; }
+        public int Y { get; set; }
 
-        public IntTuple()
+        public PixelCoordinate()
         {
             Init();
         }
 
-        public void CopyValuesFrom(IDataStructure d)
+        public void Clone(IDataStructure d)
         {
-            if (d is IntTuple)
+            if (d is PixelCoordinate)
             {
-                var mpc = d as IntTuple;
+                var mpc = d as PixelCoordinate;
                 X = mpc.X;
                 Y = mpc.Y;
             }

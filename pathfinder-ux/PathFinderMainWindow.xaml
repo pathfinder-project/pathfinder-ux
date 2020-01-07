@@ -9,8 +9,8 @@
         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" MinWidth="1024" MinHeight="768" Background="#FF947B89" Closing="Window_Closing">
     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="0"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="52"/>
+            <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="300"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -33,9 +33,9 @@
                 </MenuItem>
             </Menu>
         </Grid>
-        
+
         <Grid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Background="#FFF4F0E6">
-            <!--<Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
@@ -49,49 +49,15 @@
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="60"/>
             </Grid.RowDefinitions>
-            <Button Grid.Row="0" x:Name="button_cursor" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
+            <Button Grid.Row="0" x:Name="button_cursor" Height="48" Width="48" Margin="0" 
+                    VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" >
                 <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-hand-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="1" x:Name="button_text" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-comments-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="2" x:Name="button_annotate" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-pen-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="3" x:Name="button_annotate_plus" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-pen-advanced-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="4" x:Name="button_eraser" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-eraser-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="5" x:Name="button_measure" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-length-100.png"/>
+                    <Image Source="assets/polygon-96p.png"/>
                 </StackPanel>
             </Button>
 
-            <Button Grid.Row="6" x:Name="button_chart" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-chart-100.png"/>
-                </StackPanel>
-            </Button>
-            <Button Grid.Row="7" x:Name="button_play" Height="50" Width="50" Margin="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}">
-                <StackPanel Orientation="Horizontal" Margin="0">
-                    <Image Source="assets/icons8-movie-projector-100.png"/>
-                </StackPanel>
-            </Button>-->
         </Grid>
-        
+
         <Grid Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
@@ -116,15 +82,25 @@
         </Grid>
         <Grid Grid.Row="1" Grid.Column="1">
             <Canvas x:Name="canvas"
-                    Loaded="canvas_Loaded"
                     MouseMove="canvas_MouseMove"
                     MouseLeftButtonDown="canvas_MouseLeftButtonDown"
                     MouseLeftButtonUp="canvas_MouseLeftButtonUp"
                     MouseLeave="canvas_MouseLeave"
                     MouseWheel="canvas_MouseWheel"
-                    SizeChanged="canvas_SizeChanged" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    SizeChanged="canvas_SizeChanged" 
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" RenderTransformOrigin="0.5,0.5">
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleY="-1" ScaleX="1"/>
+                        <SkewTransform AngleY="0" AngleX="0"/>
+                        <RotateTransform Angle="0"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Canvas.RenderTransform>
                 <Canvas.Background>
-                    <ImageBrush x:Name="canvasBg"></ImageBrush>
+                    <!-- Stretch属性应设置成Fill. 如设置成None, 会引入系统自带的dpi缩放, 给坐标计算带来额外的麻烦. -->
+                    <ImageBrush x:Name="canvasBg" Stretch="Fill"></ImageBrush>
                 </Canvas.Background>
             </Canvas>
         </Grid>

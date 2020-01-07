@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace PathFinder.Layer
 {
-    class ImageLayer : ILayer
+    class SlideLayer : ILayer
     {
         private byte[] bmpBuf;
         private OpenSlideImage slide;
 
-        public ImageLayer()
+        public SlideLayer()
         {
             bmpBuf = new byte[Helper.BMP_BGRA_DATA_OFFSET + 4096 * 4096 * 4];
         }
@@ -44,22 +44,26 @@ namespace PathFinder.Layer
         /// 打开一张扫描切片
         /// </summary>
         /// <param name="path"></param>
+        /// <param name="info">输出. 封装了切片信息</param>
         /// <returns>切片的宽高 (slideW, slideH) </returns>
         public void Open(string path, object info)
         {
-            if (info is MapGeometry)
+            if (!(info is SceneGeometry))
+                throw new InvalidOperationException("info is not MapGeometry type.");
+            slide = OpenSlideImage.Open(path);
+            SceneGeometry sg = info as SceneGeometry;
+            sg.Init();
+            sg.SlideW = (int)slide.Width;
+            sg.SlideH = (int)slide.Height;
+            sg.L = 0;
+            sg.X = sg.SlideW / 2;
+            sg.Y = sg.SlideH / 2;
+            sg.NumL = slide.LevelCount;
+            for (int i = 0; i < sg.NumL; ++i)
             {
-                slide = OpenSlideImage.Open(path);
-                MapGeometry mg = info as MapGeometry;
-                mg.W = (int)slide.Width;
-                mg.H = (int)slide.Height;
-                mg.NumL = slide.LevelCount;
-                for (int i = 0; i < mg.NumL; ++i)
-                {
-                    mg.SetScaleAtLevel(i, slide.GetLevelDownsample(i));
-                }
+                sg.SetDensityAtLevel(i, slide.GetLevelDownsample(i));
             }
-            else throw new InvalidOperationException("info is not MapGeometry type.");
+
         }
     }
 }

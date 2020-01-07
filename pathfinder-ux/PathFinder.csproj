@@ -129,10 +129,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="PathFinder\Controller\ActionQueue.cs" />
+    <Compile Include="PathFinder\Controller\Actions.cs" />
     <Compile Include="PathFinder\DataStructure\IDataStructure.cs" />
-    <Compile Include="PathFinder\DataStructure\IntTuple.cs" />
+    <Compile Include="PathFinder\DataStructure\PixelCoordinate.cs" />
     <Compile Include="PathFinder\DataStructure\SceneGeometry.cs" />
-    <Compile Include="PathFinder\DataStructure\MapGeometry.cs" />
+    <Compile Include="PathFinder\DataStructure\BitEnum32.cs" />
     <Compile Include="PathFinder\Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\DeepZoomGeneratorFormatExtensions.cs" />
@@ -149,10 +151,10 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="PathFinder\CanvasRenderer.cs" />
+    <Compile Include="PathFinder\Layer\AnnotationLayer.cs" />
     <Compile Include="PathFinder\Layer\ILayer.cs" />
-    <Compile Include="PathFinder\Layer\ImageLayer.cs" />
-    <Compile Include="PathFinder\Scene.cs" />
+    <Compile Include="PathFinder\Layer\SlideLayer.cs" />
+    <Compile Include="PathFinder\Controller\SceneBlender.cs" />
     <Page Include="PathFinderMainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -198,40 +200,12 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="assets\icons8-hand-cursor-128.png" />
+    <Resource Include="assets\pen-100p.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="assets\icons8-comments-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-pen-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-pen-advanced-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-length-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-chart-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-hand-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-movie-projector-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-eraser-100.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-close-window-30.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-maximize-window-30.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="assets\icons8-minimize-window-30.png" />
+    <Resource Include="assets\edit-64p.png" />
+    <Resource Include="assets\polygon-96p.png" />
+    <Resource Include="assets\pen-advanced-100p.png" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.VersionCheckAnalyzer.2.9.8\analyzers\dotnet\cs\Microsoft.CodeAnalysis.VersionCheckAnalyzer.resources.dll" />
@@ -243,6 +217,12 @@
     <Analyzer Include="..\packages\Microsoft.NetCore.Analyzers.2.9.8\analyzers\dotnet\cs\Microsoft.NetCore.CSharp.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.NetFramework.Analyzers.2.9.8\analyzers\dotnet\cs\Microsoft.NetFramework.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.NetFramework.Analyzers.2.9.8\analyzers\dotnet\cs\Microsoft.NetFramework.CSharp.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\move-96p.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\move-30p.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\EMGU.CV.4.1.1.3497\build\EMGU.CV.targets" Condition="Exists('..\packages\EMGU.CV.4.1.1.3497\build\EMGU.CV.targets')" />
