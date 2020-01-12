@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PathFinder.Algorithm;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -66,20 +67,18 @@ namespace PathFinder.Controller.Actions
         public int H;
     }
 
+    enum DrawPolygonState
+    {
+        ForceCancel = -1,
+        PlacingVertex = 0,
+        TryFinish = 1,
+    }
+
     class DrawPolygonV : DrawingAction
     {
         public int X;
         public int Y;
-    }
-
-    class DrawPolygonFirstV : DrawingAction
-    {
-        public int X;
-        public int Y;
-    }
-
-    class DrawPolygonFinish: DrawingAction
-    {
-
+        public DrawPolygonState dps;
+        public long PolygonId;
     }
 }

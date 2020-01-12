@@ -22,14 +22,11 @@
             <Grid.Background>
                 <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.MenuBarColorKey}}"/>
             </Grid.Background>
-            <Menu x:Name="menu_main" VerticalAlignment="Center" 
+            <Menu x:Name="MenuMain" VerticalAlignment="Center" 
                   VerticalContentAlignment="Center" FontSize="14" Height="20" Margin="10,0,0,0">
-                <MenuItem x:Name="menu_file" Header="文件">
-                    <MenuItem x:Name="menu_file_open" Header="打开" Click="menu_file_open_Click"/>
-                    <MenuItem x:Name="menu_file_close" Header="关闭" Click="menu_file_close_Click"/>
-                </MenuItem>
-                <MenuItem x:Name="menu_analysis" Header="分析">
-                    <MenuItem x:Name="menu_ihc_nuclei_counting" Header="免疫组化核染计数"/>
+                <MenuItem x:Name="MenuFile" Header="文件">
+                    <MenuItem x:Name="MenuFileOpen" Header="打开" Click="MenuFileOpen_Click"/>
+                    <MenuItem x:Name="MenuFileClose" Header="关闭" Click="MenuFileClose_Click"/>
                 </MenuItem>
             </Menu>
         </Grid>
@@ -49,8 +46,9 @@
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="60"/>
             </Grid.RowDefinitions>
-            <Button Grid.Row="0" x:Name="button_cursor" Height="48" Width="48" Margin="0" 
-                    VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" >
+            <Button Grid.Row="0" x:Name="ButtonLeftPanelDrawPolygon" Height="48" Width="48" Margin="0" 
+                    VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" 
+                    Click="ButtonLeftPanelDrawPolygon_Click">
                 <StackPanel Orientation="Horizontal" Margin="0">
                     <Image Source="assets/polygon-96p.png"/>
                 </StackPanel>
@@ -81,13 +79,14 @@
             </TabControl>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="1">
-            <Canvas x:Name="canvas"
-                    MouseMove="canvas_MouseMove"
-                    MouseLeftButtonDown="canvas_MouseLeftButtonDown"
-                    MouseLeftButtonUp="canvas_MouseLeftButtonUp"
-                    MouseLeave="canvas_MouseLeave"
-                    MouseWheel="canvas_MouseWheel"
-                    SizeChanged="canvas_SizeChanged" 
+            <Canvas x:Name="CanvasMain"
+                    MouseMove="CanvasMain_MouseMove"
+                    MouseLeftButtonDown="CanvasMain_MouseLeftButtonDown"
+                    MouseLeftButtonUp="CanvasMain_MouseLeftButtonUp"
+                    MouseLeave="CanvasMain_MouseLeave"
+                    MouseWheel="CanvasMain_MouseWheel"
+                    SizeChanged="CanvasMain_SizeChanged"
+                    
                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" RenderTransformOrigin="0.5,0.5">
                 <Canvas.RenderTransform>

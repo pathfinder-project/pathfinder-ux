@@ -1,4 +1,4 @@
-﻿using PathFinder.DataStructure;
+﻿using PathFinder.Algorithm;
 using PathFinder.Layer;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,6 @@ using System.Windows.Media.Imaging;
 namespace PathFinder.Controller
 {
     using Actions;
-    using Polygon = System.Collections.Generic.List<PixelCoordinate>;
 
     class SceneBlender
     {
@@ -23,8 +22,8 @@ namespace PathFinder.Controller
         private ActionQueue msgq;
         private ImageBrush canvasBg;
 
-        private SlideLayer bg;
-        private AnnotationLayer fg;
+        private SlideLayer sl;
+        private PolygonLayer pl;
         private Thread worker;
 
         public SceneBlender(Canvas canvas, ImageBrush canvasBg, int fps)
@@ -33,8 +32,8 @@ namespace PathFinder.Controller
             this.canvasBg = canvasBg;
             period = (long)(1000.0 / fps);
             msgq = ActionQueue.Singleton();
-            bg = new SlideLayer();
-            fg = new AnnotationLayer();
+            sl = new SlideLayer();
+            pl = new PolygonLayer();
             worker = new Thread(new ThreadStart(Work));
         }
 
@@ -52,7 +51,6 @@ namespace PathFinder.Controller
         {
             SceneGeometry sg0 = new SceneGeometry();
             SceneGeometry sg1 = new SceneGeometry();
-            Polygon polygonEmbryo = null;
 
             while (true)
             {
@@ -95,27 +93,29 @@ namespace PathFinder.Controller
                     }
                     else if (act is DrawingAction)
                     {
-                        if (act is DrawPolygonFirstV)
+                        if (act is DrawPolygonV)
                         {
-                            var a = act as DrawPolygonFirstV;
-                            polygonEmbryo = new Polygon();
-                            polygonEmbryo.Add(new PixelCoordinate() { 
-                                X = sg1.X + sg1.ToActualPixel(a.X), 
-                                Y = sg1.Y + sg1.ToActualPixel(a.Y) });
-                        }
-                        else if (act is DrawPolygonV)
-                        {
-                            var a = act as DrawPolygonFirstV;
-                            polygonEmbryo.Add(new PixelCoordinate()
+                            var a = act as DrawPolygonV;
+                            if (a.dps == DrawPolygonState.PlacingVertex)
                             {
-                                X = sg1.X + sg1.ToActualPixel(a.X),
-                                Y = sg1.Y + sg1.ToActualPixel(a.Y)
-                            });
-                        }
-                        else if (act is DrawPolygonFinish)
-                        {
-                            fg.AddPolygon(polygonEmbryo);
-                            polygonEmbryo = null;
+                                int x = sg1.X + sg1.ToActualPixel(a.X);
+                                int y = sg1.Y + sg1.ToActualPixel(a.Y);
+                                pl.AddPolygonPoint(a.PolygonId, x, y);
+                            }
+                            else if (a.dps == DrawPolygonState.TryFinish)
+                            {
+                                int x = sg1.X + sg1.ToActualPixel(a.X);
+                                int y = sg1.Y + sg1.ToActualPixel(a.Y);
+                                pl.AddPolygonPoint(a.PolygonId, x, y);
+                                if (pl.PolygonNumPoints(a.PolygonId) < 3)
+                                {
+                                    pl.RemovePolygon(a.PolygonId);
+                                }
+                            }
+                            else if (a.dps == DrawPolygonState.ForceCancel)
+                            {
+                                pl.RemovePolygon(a.PolygonId);
+                            }
                         }
                     }
                     else if (act is FileAction)
@@ -123,13 +123,13 @@ namespace PathFinder.Controller
                         if (act is LoadSlide)
                         {
                             var a = act as LoadSlide;
-                            bg.Open(a.Path, sg1);
+                            sl.Open(a.Path, sg1);
                             sg1.W = a.W;
                             sg1.H = a.H;
                         }
                         else if (act is CloseSlide)
                         {
-                            bg.Close();
+                            sl.Close();
                         }
                     }
                 }
@@ -141,8 +141,9 @@ namespace PathFinder.Controller
                 {
                     // 先只做image layer的合成
                     // 做好了再做annotation layer
-                    byte[] img = bg.LoadRegion(sg1) as byte[];
-                    canvasBg.Dispatcher.Invoke(() => {
+                    byte[] img = sl.LoadRegion(sg1) as byte[];
+                    canvasBg.Dispatcher.Invoke(() => 
+                    {
                         BitmapImage bi = null;
                         #region 同步UI线程和工作线程. i.e. 更新UI (执行于UI线程)
                         using (var ms = new System.IO.MemoryStream(img))
@@ -155,7 +156,11 @@ namespace PathFinder.Controller
                         }
                         canvasBg.ImageSource = bi;
                         #endregion
-                    }, System.Windows.Threading.DispatcherPriority.DataBind);
+                    }, System.Windows.Threading.DispatcherPriority.Send);
+                    canvas.Dispatcher.Invoke(() =>
+                    {
+
+                    }, System.Windows.Threading.DispatcherPriority.Send);
                     sg0.Clone(sg1);
                 }
                 

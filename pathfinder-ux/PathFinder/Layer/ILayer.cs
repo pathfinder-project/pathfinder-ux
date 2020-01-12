@@ -1,4 +1,4 @@
-﻿using PathFinder.DataStructure;
+﻿using PathFinder.Algorithm;
 using System;
 using System.Collections.Generic;
 using System.Linq;
