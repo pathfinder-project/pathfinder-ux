@@ -37,8 +37,8 @@ namespace PathFinder.Controller.Actions
 
     class LoadSlide : FileAction
     {
-        public int W;
-        public int H;
+        public double W;
+        public double H;
 
         public string Path { get; set; }
     }
@@ -50,21 +50,21 @@ namespace PathFinder.Controller.Actions
 
     class Move : GeometryAction
     {
-        public int dX;
-        public int dY;
+        public double dX;
+        public double dY;
     }
 
     class Zoom : GeometryAction
     {
         public int nScroll;
-        public int X;
-        public int Y;
+        public double X;
+        public double Y;
     }
 
     class Resize : GeometryAction
     {
-        public int W;
-        public int H;
+        public double W;
+        public double H;
     }
 
     enum DrawPolygonState
@@ -76,9 +76,9 @@ namespace PathFinder.Controller.Actions
 
     class DrawPolygonV : DrawingAction
     {
-        public int X;
-        public int Y;
+        public double X;
+        public double Y;
         public DrawPolygonState dps;
-        public long PolygonId;
+        public long Id;
     }
 }

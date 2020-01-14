@@ -35,8 +35,8 @@ namespace PathFinder.Layer
 
         public object LoadRegion(SceneGeometry sg)
         {
-            Helper.InitBgraHeader(bmpBuf, sg.W, sg.H);
-            slide.DangerousReadRegion(sg.L, sg.X, sg.Y, sg.W, sg.H, ref bmpBuf[Helper.BMP_BGRA_DATA_OFFSET]);
+            Helper.InitBgraHeader(bmpBuf, (int)sg.OutW, (int)sg.OutH);
+            slide.DangerousReadRegion(sg.L, (int)sg.X, (int)sg.Y, (int)sg.OutW, (int)sg.OutH, ref bmpBuf[Helper.BMP_BGRA_DATA_OFFSET]);
             return bmpBuf;
         }
 

@@ -78,7 +78,7 @@
                 </TabItem>
             </TabControl>
         </Grid>
-        <Grid Grid.Row="1" Grid.Column="1">
+        <Grid Grid.Row="1" Grid.Column="1" Panel.ZIndex="255">
             <Canvas x:Name="CanvasMain"
                     MouseMove="CanvasMain_MouseMove"
                     MouseLeftButtonDown="CanvasMain_MouseLeftButtonDown"
@@ -86,6 +86,7 @@
                     MouseLeave="CanvasMain_MouseLeave"
                     MouseWheel="CanvasMain_MouseWheel"
                     SizeChanged="CanvasMain_SizeChanged"
+                    ClipToBounds="True"
                     
                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" RenderTransformOrigin="0.5,0.5">

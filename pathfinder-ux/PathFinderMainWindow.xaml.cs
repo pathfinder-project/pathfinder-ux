@@ -30,11 +30,11 @@ namespace PathFinder
         private BrowsingState bs;
         private DrawingState ds;
 
-        private int x0 = 0;
-        private int x1 = 0;
+        private double x0 = 0;
+        private double x1 = 0;
 
-        private int y0 = 0;
-        private int y1 = 0;
+        private double y0 = 0;
+        private double y1 = 0;
 
         public PathFinderMainWindow()
         {
@@ -83,8 +83,7 @@ namespace PathFinder
             {
                 var act = new LoadSlide();
                 act.Path = dlg.FileName;
-                Helper.ToScreenPixel(CanvasMain, CanvasMain.ActualWidth, CanvasMain.ActualHeight, ref act.W, ref act.H);
-                Console.WriteLine("W={0}, H={1}", act.W, act.H);
+                (act.W, act.H) = (CanvasMain.ActualWidth, CanvasMain.ActualHeight);
                 aq.Submit(act);
                 blender.Start();
                 bs = BrowsingState.Free;
@@ -101,28 +100,27 @@ namespace PathFinder
 
         private void CanvasMain_MouseMove(object sender, MouseEventArgs e)
         {
+            var p = e.GetPosition(CanvasMain);
             if (bs == BrowsingState.Moving)
             {
                 var act = new Move();
-                Helper.GetMousePosition(ref x1, ref y1);
-                act.dX = x0 - x1;
-                act.dY = y0 - y1;
+                (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
+                (act.dX, act.dY) = (x0 - x1, y0 - y1);
                 aq.Submit(act);
-                x0 = x1;
-                y0 = y1;
+                (x0, y0) = (x1, y1);
             }
         }
 
         private void CanvasMain_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            //int x = 0, y = 0;
-            //Helper.GetMousePosition(ref x, ref y);
-            //Console.WriteLine("mx={0}, my={1}", x, y);
+            var p = e.GetPosition(CanvasMain);
+            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
+
             if (bs == BrowsingState.Free)
             {
                 CanvasMain.Cursor = Cursors.ScrollAll;
                 bs = BrowsingState.Moving;
-                Helper.GetMousePosition(ref x0, ref y0);
+                (x0, y0) = (x1, y1);
             } 
             else if (bs == BrowsingState.Locked)
             {
@@ -132,11 +130,7 @@ namespace PathFinder
                     {
                         var act = new DrawPolygonV();
                         act.dps = DrawPolygonState.PlacingVertex;
-                        var p = e.GetPosition(CanvasMain);
-                        
-                        // GetPosition得到的坐标是以「左下角」为原点的.
-                        // 需要换算为以左上角为原点.
-                        Helper.ToScreenPixel(CanvasMain, p.X, CanvasMain.ActualHeight - p.Y, ref act.X, ref act.Y);
+                        (act.X, act.Y) = (x1, y1);
                         aq.Submit(act);
                     }
                 }
@@ -146,11 +140,8 @@ namespace PathFinder
                     {
                         var act = new DrawPolygonV();
                         act.dps = DrawPolygonState.TryFinish;
-                        var p = e.GetPosition(CanvasMain);
-
-                        // GetPosition得到的坐标是以「左下角」为原点的.
-                        // 需要换算为以左上角为原点.
-                        Helper.ToScreenPixel(CanvasMain, p.X, CanvasMain.ActualHeight - p.Y, ref act.X, ref act.Y);
+                        (act.X, act.Y) = (x1, y1);
+                        aq.Submit(act);
                     }
 
                     ds = DrawingState.NotDrawing;
@@ -180,16 +171,23 @@ namespace PathFinder
 
         private void CanvasMain_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            double w, h;
+            (w, h) = (CanvasMain.ActualWidth, CanvasMain.ActualHeight);
             if (bs != BrowsingState.NoSlide)
             {
                 var act = new Resize();
-                Helper.ToScreenPixel(CanvasMain, CanvasMain.ActualWidth, CanvasMain.ActualHeight, ref act.W, ref act.H);
+                (act.W, act.H) = (w, h);
                 aq.Submit(act);
             }
         }
 
         private void CanvasMain_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+            // GetPosition得到的坐标是以「左下角」为原点的.
+            // 需要换算为以左上角为原点.
+            var p = e.GetPosition(CanvasMain);
+            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
+
             // 是与canvas左上角的WPF距离向量
             if (bs == BrowsingState.Free)
             {
@@ -197,11 +195,7 @@ namespace PathFinder
 
                 var act = new Zoom();
                 act.nScroll = scroll;
-                var p = e.GetPosition(CanvasMain);
-
-                // GetPosition得到的坐标是以「左下角」为原点的.
-                // 需要换算为以左上角为原点.
-                Helper.ToScreenPixel(CanvasMain, p.X, CanvasMain.ActualHeight - p.Y, ref act.X, ref act.Y);
+                (act.X, act.Y) = (x1, y1);
                 aq.Submit(act);
             }
         }

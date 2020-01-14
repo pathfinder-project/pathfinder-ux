@@ -157,14 +157,24 @@ namespace PathFinder
             Array.Copy(a, 0, a, cnt, len - cnt);
         }
 
-        public static void ToScreenPixel(FrameworkElement fe, double a, double b, ref int ap, ref int bp)
+        public static void ToScreenPixel(FrameworkElement fe, double a, double b, out double ap, out double bp)
         {
             var src = PresentationSource.FromVisual(fe);
             var tran = src.CompositionTarget.TransformToDevice;
             Vector vec = new Vector { X = a, Y = b };
             Vector px_vec = tran.Transform(vec);
-            ap = (int)px_vec.X;
-            bp = (int)px_vec.Y;
+            ap = px_vec.X;
+            bp = px_vec.Y;
+        }
+
+        public static void ToWpfPixel(FrameworkElement fe, double ap, double bp, out double a, out double b)
+        {
+            var src = PresentationSource.FromVisual(fe);
+            var tran = src.CompositionTarget.TransformFromDevice;
+            var px_vec = new Vector { X = ap, Y = bp };
+            var vec = tran.Transform(px_vec);
+            a = px_vec.X;
+            b = px_vec.Y;
         }
     }
 }

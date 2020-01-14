@@ -133,6 +133,7 @@
     <Compile Include="PathFinder\Controller\Actions.cs" />
     <Compile Include="PathFinder\Algorithm\Graphics.cs" />
     <Compile Include="PathFinder\Algorithm\OrderedLinearList.cs" />
+    <Compile Include="PathFinder\Layer\Drawable.cs" />
     <Compile Include="PathFinder\Layer\SceneGeometry.cs" />
     <Compile Include="PathFinder\Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
@@ -150,7 +151,7 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="PathFinder\Layer\PolygonLayer.cs" />
+    <Compile Include="PathFinder\Layer\PolylineLayer.cs" />
     <Compile Include="PathFinder\Layer\ILayer.cs" />
     <Compile Include="PathFinder\Layer\SlideLayer.cs" />
     <Compile Include="PathFinder\Controller\SceneBlender.cs" />

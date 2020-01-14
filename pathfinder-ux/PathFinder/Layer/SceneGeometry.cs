@@ -11,28 +11,28 @@ namespace PathFinder.Layer
         private static readonly long BUFLEN = 255;
 
         // 视野左上角横坐标. 像素. 0级缩放.
-        public int X { get; set; }
+        public double X { get; set; }
 
         // 视野左上角纵坐标. 像素. 0级缩放.
-        public int Y { get; set; }
+        public double Y { get; set; }
 
         // 缩放级别.
         public int L { get; set; }
 
-        // 缩放级别数
+        // 缩放级别数.
         public int NumL { get; set; }
 
-        // 视野宽度. 像素.
-        public int W { get; set; }
+        // 输出宽度. 像素. L级缩放.
+        public double OutW { get; set; }
 
-        // 视野高度. 像素.
-        public int H { get; set; }
+        // 输出高度. 像素. L级缩放.
+        public double OutH { get; set; }
 
-        // 切片宽度. 像素.
-        public int SlideW { get; set; }
+        // 切片宽度. 像素. 0级缩放.
+        public double SlideW { get; set; }
 
-        // 切片高度. 像素.
-        public int SlideH { get; set; }
+        // 切片高度. 像素. L级缩放.
+        public double SlideH { get; set; }
 
         private double[] pixelDensity;
 
@@ -43,7 +43,7 @@ namespace PathFinder.Layer
 
         public SceneGeometry(SceneGeometry sg)
         {
-            Clone(sg);
+            CopyFrom(sg);
         }
 
         public override int GetHashCode()
@@ -51,17 +51,18 @@ namespace PathFinder.Layer
             int p1 = 29, p2 = 31, p3 = 233;
 
             p1 = p1 * p2 + L % p3;
-            p1 = p1 * p2 + H % p3;
-            p1 = p1 * p2 + W % p3;
-            p1 = p1 * p2 + X % p3;
-            p1 = p1 * p2 + Y % p3;
+            p1 = p1 * p2 + (int)OutH % p3;
+            p1 = p1 * p2 + (int)OutW % p3;
+            p1 = p1 * p2 + (int)X % p3;
+            p1 = p1 * p2 + (int)Y % p3;
 
             return p1;
         }
 
         public void Init()
         {
-            X = Y = L = NumL = W = H = SlideW = SlideH = 0;
+            X = Y = L = NumL = 0;
+            OutW = OutH = SlideW = SlideH = 0;
             if (pixelDensity == null)
             {
                 pixelDensity = new double[BUFLEN];
@@ -69,10 +70,10 @@ namespace PathFinder.Layer
             pixelDensity.FillWith(-1);
         }
 
-        public void Clone(SceneGeometry sg)
+        public void CopyFrom(SceneGeometry sg)
         {
             X = sg.X; Y = sg.Y; L = sg.L; NumL = sg.NumL;
-            W = sg.W; H = sg.H;
+            OutW = sg.OutW; OutH = sg.OutH;
             SlideW = sg.SlideW; SlideH = sg.SlideH;
             if (pixelDensity == null)
             {
@@ -84,7 +85,7 @@ namespace PathFinder.Layer
         public void Update(SceneGeometry sg)
         {
             X = sg.X; Y = sg.Y;
-            L = sg.L; W = sg.L; H = sg.H;
+            L = sg.L; OutW = sg.L; OutH = sg.OutH;
         }
 
         /// <summary>
@@ -102,19 +103,19 @@ namespace PathFinder.Layer
         /// </summary>
         /// <param name="dx">屏幕像素数</param>
         /// <param name="dy">屏幕像素数</param>
-        public void Move(int dx, int dy)
+        public void Move(double dx, double dy)
         {
-            int x0 = X, y0 = Y;
+            double x0 = X, y0 = Y;
             X += ToActualPixel(dx);
             //X += dx;
             Y += ToActualPixel(dy);
             //Y += dy;
 
-            // 修正超出范围的坐标
-            var padX = ToActualPixel(W / 2.0);
-            var padY = ToActualPixel(H / 2.0);
-            X = Math.Max(Math.Min(X, SlideW - padX), 0);
-            Y = Math.Max(Math.Min(Y, SlideH - padY), 0);
+            //// 修正超出范围的坐标
+            //var padX = ToActualPixel(OutW / 2.0);
+            //var padY = ToActualPixel(OutH / 2.0);
+            //X = Math.Max(Math.Min(X, SlideW - padX), 0);
+            //Y = Math.Max(Math.Min(Y, SlideH - padY), 0);
         }
 
         /// <summary>
@@ -122,19 +123,14 @@ namespace PathFinder.Layer
         /// </summary>
         /// <param name="pScreen">屏幕上的像素值</param>
         /// <returns></returns>
-        public int ToActualPixel(int pScreen)
+        public double ToActualPixel(double pScreen)
         {
-            return (int)(pScreen * pixelDensity[L]);
+            return pScreen * pixelDensity[L];
         }
 
-        /// <summary>
-        /// 把屏幕上的像素值换算成切片上的像素值.
-        /// </summary>
-        /// <param name="pScreen">屏幕上的像素值</param>
-        /// <returns></returns>
-        public int ToActualPixel(double pScreen)
+        public double ToDisplayPixel(double pActual)
         {
-            return (int)(pScreen * pixelDensity[L]);
+            return pActual / pixelDensity[L];
         }
 
         /// <summary>
@@ -143,7 +139,7 @@ namespace PathFinder.Layer
         /// <param name="n">滚轮滚动数</param>
         /// <param name="xm">鼠标横坐标. 像素. 屏幕.</param>
         /// <param name="ym">鼠标纵坐标. 像素. 屏幕.</param>
-        public void Zoom(int n, int xm, int ym)
+        public void Zoom(int n, double xm, double ym)
         {
             int sign = Math.Sign(n);
             int srcL = L;
@@ -165,8 +161,8 @@ namespace PathFinder.Layer
                  * 由(1)(2)得到
                  * X1 = X + xm*(d0 - d1)   (3)
                  */
-                X = (int)(X + xm * (d0 - d1));
-                Y = (int)(Y + ym * (d0 - d1));
+                X = X + xm * (d0 - d1);
+                Y = Y + ym * (d0 - d1);
 
                 // 修正超出范围的坐标
                 //var padX = ToActualPixel(W / 2.0);
@@ -176,9 +172,9 @@ namespace PathFinder.Layer
             }
         }
 
-        public void Resize(int w, int h)
+        public void Resize(double w, double h)
         {
-            W = w; H = h;
+            OutW = w; OutH = h;
         }
     }
 }
