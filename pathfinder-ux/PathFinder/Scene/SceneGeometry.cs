@@ -4,35 +4,35 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PathFinder.Layer
+namespace PathFinder.Scene
 {
     class SceneGeometry
     {
         private static readonly long BUFLEN = 255;
 
         // 视野左上角横坐标. 像素. 0级缩放.
-        public double X { get; set; }
+        public double X;
 
         // 视野左上角纵坐标. 像素. 0级缩放.
-        public double Y { get; set; }
+        public double Y;
 
         // 缩放级别.
-        public int L { get; set; }
+        public int L;
 
         // 缩放级别数.
-        public int NumL { get; set; }
+        public int NumL;
 
         // 输出宽度. 像素. L级缩放.
-        public double OutW { get; set; }
+        public double OutW;
 
         // 输出高度. 像素. L级缩放.
-        public double OutH { get; set; }
+        public double OutH;
 
         // 切片宽度. 像素. 0级缩放.
-        public double SlideW { get; set; }
+        public double SlideW;
 
         // 切片高度. 像素. L级缩放.
-        public double SlideH { get; set; }
+        public double SlideH;
 
         private double[] pixelDensity;
 
@@ -61,8 +61,8 @@ namespace PathFinder.Layer
 
         public void Init()
         {
-            X = Y = L = NumL = 0;
-            OutW = OutH = SlideW = SlideH = 0;
+            (X, Y, L, NumL, OutW, OutH, SlideW, SlideH) 
+                = (0, 0, 0, 0, 0, 0, 0, 0);
             if (pixelDensity == null)
             {
                 pixelDensity = new double[BUFLEN];
@@ -72,9 +72,9 @@ namespace PathFinder.Layer
 
         public void CopyFrom(SceneGeometry sg)
         {
-            X = sg.X; Y = sg.Y; L = sg.L; NumL = sg.NumL;
-            OutW = sg.OutW; OutH = sg.OutH;
-            SlideW = sg.SlideW; SlideH = sg.SlideH;
+            (X, Y, L, NumL, OutW, OutH, SlideW, SlideH) = 
+                (sg.X, sg.Y, sg.L, sg.NumL, 
+                sg.OutW, sg.OutH, sg.SlideW, sg.SlideH);
             if (pixelDensity == null)
             {
                 pixelDensity = new double[BUFLEN];

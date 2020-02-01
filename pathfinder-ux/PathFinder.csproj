@@ -133,8 +133,8 @@
     <Compile Include="PathFinder\Controller\Actions.cs" />
     <Compile Include="PathFinder\Algorithm\Graphics.cs" />
     <Compile Include="PathFinder\Algorithm\OrderedLinearList.cs" />
-    <Compile Include="PathFinder\Layer\Drawable.cs" />
-    <Compile Include="PathFinder\Layer\SceneGeometry.cs" />
+    <Compile Include="PathFinder\Scene\Drawable.cs" />
+    <Compile Include="PathFinder\Scene\SceneGeometry.cs" />
     <Compile Include="PathFinder\Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\DeepZoomGeneratorFormatExtensions.cs" />
@@ -151,9 +151,8 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="PathFinder\Layer\PolylineLayer.cs" />
-    <Compile Include="PathFinder\Layer\ILayer.cs" />
-    <Compile Include="PathFinder\Layer\SlideLayer.cs" />
+    <Compile Include="PathFinder\Scene\PolylineScene.cs" />
+    <Compile Include="PathFinder\Scene\SlideScene.cs" />
     <Compile Include="PathFinder\Controller\SceneBlender.cs" />
     <Page Include="PathFinderMainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -187,7 +186,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="packages.config" />
@@ -223,6 +222,15 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="assets\move-30p.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="chessboard.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\chessboard.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\diamond.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\EMGU.CV.4.1.1.3497\build\EMGU.CV.targets" Condition="Exists('..\packages\EMGU.CV.4.1.1.3497\build\EMGU.CV.targets')" />

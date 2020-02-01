@@ -24,7 +24,7 @@ namespace PathFinder.Controller.Actions
     abstract class FileAction : Action
     {
     }
-    
+
     abstract class GeometryAction : Action
     {
 
@@ -59,6 +59,12 @@ namespace PathFinder.Controller.Actions
         public int nScroll;
         public double X;
         public double Y;
+    }
+
+    class ThumbJumpAction : GeometryAction
+    {
+        public double CenterX;
+        public double CenterY;
     }
 
     class Resize : GeometryAction

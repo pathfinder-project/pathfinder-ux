@@ -3,19 +3,26 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:PathFinder"   
         mc:Ignorable="d"
         Title="Pathfinder切片分析客户端" Height="1024" Width="1280" FontSize="14" 
-        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" MinWidth="1024" MinHeight="768" Background="#FF947B89" Closing="Window_Closing">
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" 
+        MinWidth="1024" MinHeight="768" Background="#FF947B89" 
+        Closing="Window_Closing">
+    <Window.Resources>
+        <sys:Double x:Key="thumbMaxWidth">200</sys:Double>
+        <sys:Double x:Key="thumbMaxHeight">500</sys:Double>
+    </Window.Resources>
     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="52"/>
             <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="{Binding Source={StaticResource thumbMaxWidth}}"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="32"/>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1*" MinHeight="800"/>
             <RowDefinition Height="32"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
@@ -36,6 +43,7 @@
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="10"/>
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="60"/>
@@ -46,7 +54,7 @@
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="60"/>
             </Grid.RowDefinitions>
-            <Button Grid.Row="0" x:Name="ButtonLeftPanelDrawPolygon" Height="48" Width="48" Margin="0" 
+            <Button Grid.Row="1" x:Name="ButtonLeftPanelDrawPolygon" Height="48" Width="48" Margin="0" 
                     VerticalAlignment="Center" HorizontalAlignment="Center" Background="{x:Null}" BorderBrush="{x:Null}" 
                     Click="ButtonLeftPanelDrawPolygon_Click">
                 <StackPanel Orientation="Horizontal" Margin="0">
@@ -56,27 +64,42 @@
 
         </Grid>
 
-        <Grid Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
+        <Grid Grid.Row="1" Grid.Column="2" Background="#525252">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="{Binding Source={StaticResource thumbMaxHeight}}"/>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="2*"/>
             </Grid.RowDefinitions>
-            <TabControl Grid.Row="0" x:Name="tabControlRightUpper" Margin="0">
-                <!--<TabItem x:Name="tab_layers" Header="图层">
-                    <Grid Background="#FFE5E5E5"/>
-                </TabItem>-->
+            <Grid Grid.Row="0">
+                <Canvas x:Name="CanvasThumb"
+                        ClipToBounds="True"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                        RenderTransformOrigin="0.5,0.5"
+                        Panel.ZIndex="255" 
+                        HorizontalAlignment="Center" 
+                        VerticalAlignment="Center" 
+                        MouseLeftButtonDown="CanvasThumb_MouseLeftButtonDown">
+                    <Canvas.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleY="1" ScaleX="1"/>
+                            <SkewTransform AngleY="0" AngleX="0"/>
+                            <RotateTransform Angle="0"/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Canvas.RenderTransform>
+                    <Canvas.Background>
+                        <ImageBrush x:Name="CanvasThumbImage"/>
+                    </Canvas.Background>
+                </Canvas>
+            </Grid>
+            <TabControl Grid.Row="1" x:Name="tabControlRightUpper" Margin="0">
                 <TabItem x:Name="tab_properties"  Header="属性">
-                    <Grid Background="#FFE5E5E5"/>
                 </TabItem>
             </TabControl>
-            <TabControl Grid.Row="1" x:Name="tabControlRightLower" Margin="0">
-                <TabItem x:Name="tab_thumbnail" Header="缩略图">
-                    <Grid Background="#FFE5E5E5"/>
-                </TabItem>
-            </TabControl>
+            
         </Grid>
         <Grid Grid.Row="1" Grid.Column="1" Panel.ZIndex="255">
             <Canvas x:Name="CanvasMain"
@@ -84,12 +107,38 @@
                     MouseLeftButtonDown="CanvasMain_MouseLeftButtonDown"
                     MouseLeftButtonUp="CanvasMain_MouseLeftButtonUp"
                     MouseLeave="CanvasMain_MouseLeave"
+                    
                     MouseWheel="CanvasMain_MouseWheel"
                     SizeChanged="CanvasMain_SizeChanged"
                     ClipToBounds="True"
-                    
+                    Panel.ZIndex="255"
                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" RenderTransformOrigin="0.5,0.5">
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                    RenderTransformOrigin="0.5,0.5">
+                <!-- OpacityMask相当于Photoshop中的蒙版 -->
+                <!--<Canvas.OpacityMask>
+                    <ImageBrush Stretch="None" ImageSource="chessboard.png"/>
+                </Canvas.OpacityMask>-->
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleY="-1" ScaleX="1"/>
+                        <SkewTransform AngleY="0" AngleX="0"/>
+                        <RotateTransform Angle="0"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Canvas.RenderTransform>
+                <!-- Stretch属性应设置成Fill. 如设置成None, 会引入系统自带的dpi缩放, 给坐标计算带来额外的麻烦. -->
+                <!--<Image x:Name="CanvasMainImage" Stretch="Fill"/>-->
+                <Canvas.Background>
+                    <ImageBrush x:Name="CanvasMainImage" Stretch="Fill"></ImageBrush>
+                </Canvas.Background>
+            </Canvas>
+            <Canvas x:Name="CanvasBackground" 
+                    Panel.ZIndex="1"                    
+                    ClipToBounds="True"
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                    RenderTransformOrigin="0.5,0.5">
                 <Canvas.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform ScaleY="-1" ScaleX="1"/>
@@ -99,12 +148,17 @@
                     </TransformGroup>
                 </Canvas.RenderTransform>
                 <Canvas.Background>
-                    <!-- Stretch属性应设置成Fill. 如设置成None, 会引入系统自带的dpi缩放, 给坐标计算带来额外的麻烦. -->
-                    <ImageBrush x:Name="canvasBg" Stretch="Fill"></ImageBrush>
+                    <ImageBrush 
+                        TileMode="Tile" 
+                        Stretch="Fill"
+                        ImageSource="assets\chessboard.png"
+                        Viewport="0,0,16,16"
+                        ViewportUnits="Absolute" />
                 </Canvas.Background>
             </Canvas>
+            
         </Grid>
-        <Grid Grid.Row="2" Grid.Column="1">
+        <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2">
             <StatusBar Margin="0" Background="#dcdcdc">
                 <TextBlock x:Name="statusBarTextBlock" TextWrapping="Wrap" Text=""/>
             </StatusBar>

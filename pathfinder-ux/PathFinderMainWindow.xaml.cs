@@ -24,25 +24,31 @@ namespace PathFinder
 
     public partial class PathFinderMainWindow : Window
     {
-        private SceneBlender blender;
-        private ActionQueue aq;
+        SceneBlender blender;
+        ActionQueue aq;
 
-        private BrowsingState bs;
-        private DrawingState ds;
-
-        private double x0 = 0;
-        private double x1 = 0;
-
-        private double y0 = 0;
-        private double y1 = 0;
+        BrowsingState bs;
+        DrawingState ds;
+        
+        double x0 = 0;
+        double x1 = 0;
+        
+        double y0 = 0;
+        double y1 = 0;
 
         public PathFinderMainWindow()
         {
+            this.DataContext = this;
             aq = ActionQueue.Singleton();
             InitializeComponent();
             bs = BrowsingState.NoSlide;
             ds = DrawingState.NotDrawing;
-            blender = new SceneBlender(CanvasMain, canvasBg, 15);
+            double thumbMaxWidth = (double)this.Resources["thumbMaxWidth"];
+            double thumbMaxHeight = (double)this.Resources["thumbMaxHeight"];
+            //Console.WriteLine($"{thumbMaxWidth}, {thumbMaxHeight}");
+            blender = new SceneBlender(CanvasMain, CanvasThumb, CanvasMainImage, CanvasThumbImage,
+                15, thumbMaxWidth, thumbMaxHeight);
+            CanvasBackground.Visibility = Visibility.Hidden;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -59,10 +65,6 @@ namespace PathFinder
         {
             if (e.ChangedButton != MouseButton.Left)
                 return;
-            // 以下代码是为了支持最大化状态下的拖动, 但会导致拖动后鼠标指针漂移.
-            //if (WindowState == WindowState.Maximized)
-            //    WindowState = WindowState.Normal;
-                // TODO: 窗口移动到鼠标底下
             this.DragMove();
         }
 
@@ -88,6 +90,8 @@ namespace PathFinder
                 blender.Start();
                 bs = BrowsingState.Free;
                 CanvasMain.Cursor = Cursors.Hand;
+                
+                CanvasBackground.Visibility = Visibility.Visible;
             }
         }
 
@@ -213,6 +217,20 @@ namespace PathFinder
                 bs = BrowsingState.Free;
                 ds = DrawingState.NotDrawing;
                 CanvasMain.Cursor = Cursors.Hand;
+            }
+        }
+
+        private void CanvasThumb_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (bs == BrowsingState.Free)
+            {
+                bs = BrowsingState.Moving;
+                var p = e.GetPosition(CanvasThumb);
+                var act = new ThumbJumpAction();
+                (act.CenterX, act.CenterY) = (p.X, p.Y);
+                Console.WriteLine($"Click ({p.X:0.0},{p.Y:0.0}) on CanvasThumb");
+                aq.Submit(act);
+                bs = BrowsingState.Free;
             }
         }
     }

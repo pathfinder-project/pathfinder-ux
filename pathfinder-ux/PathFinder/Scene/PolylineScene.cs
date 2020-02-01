@@ -8,14 +8,14 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace PathFinder.Layer
+namespace PathFinder.Scene
 {
 
-    class PolylineLayer : ILayer
+    class PolylineScene
     {
         private Dictionary<long, Polyline> polylines;
 
-        public PolylineLayer()
+        public PolylineScene()
         {
             Clear();
         }
@@ -50,22 +50,12 @@ namespace PathFinder.Layer
             polylines = new Dictionary<long, Polyline>();
         }
 
-        public Task<object> AsyncLoadRegion(SceneGeometry sg)
-        {
-            throw new NotImplementedException();
-        }
-
         public void Close()
         {
             
         }
 
-        public void Dispose()
-        {
-            Close();
-        }
-
-        public object LoadRegion(SceneGeometry sg)
+        public List<Drawable> LoadRegionShapes(SceneGeometry sg)
         {
             double left, top, right, bottom;
             (left, top, right, bottom) = (sg.X, sg.Y, sg.X + sg.ToActualPixel(sg.OutW), sg.Y + sg.ToActualPixel(sg.OutH));

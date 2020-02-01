@@ -1,5 +1,5 @@
 ﻿using PathFinder.Algorithm;
-using PathFinder.Layer;
+using PathFinder.Scene;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,32 +11,48 @@ namespace PathFinder.Controller
 {
     using Actions;
     using System.Windows.Shapes;
-    using LineSegment = Layer.LineSegment;
+    using LineSegment = Scene.LineSegment;
 
     class SceneBlender
     {
-        // 每period毫秒合成1帧画面.
-        // 如果合成第i帧所消耗的时间超过了period, 则等到第i帧合成完毕才开始合成第i+1帧.
-        // 如果合成时间小于period, 则工作线程忙等到period才合成第i+1帧.
+        #region 这些对象为UI线程所持有
+        private Canvas canvasMain;
+        private Canvas canvasThumb;
+        private ImageBrush imageMain;
+        private ImageBrush imageThumb;
+        #endregion
+
+        // UI和工作线程的通信队列
+        private ActionQueue msgq;
+
+        #region 这些成员对象为工作线程所持有
+        private Thread worker;
+        private double thumbMaxW;
+        private double thumbMaxH;
+        private double thumbDensity;
+        /// 每period毫秒合成1帧画面.
+        /// 如果合成第i帧所消耗的时间超过了period, 则等到第i帧合成完毕才开始合成第i+1帧.
+        /// 如果合成时间小于period, 则工作线程忙等到period才合成第i+1帧.
         private long period;
 
-        private Canvas canvas;
-        private ActionQueue msgq;
-        private ImageBrush canvasBg;
+        private SlideScene bg;
+        private PolylineScene fg;
+        #endregion
 
-        private SlideLayer bg;
-        private PolylineLayer fg;
-        private Thread worker;
-
-        public SceneBlender(Canvas canvas, ImageBrush canvasBg, int fps)
+        public SceneBlender(Canvas canvasMain, Canvas canvasThumb, 
+            ImageBrush imageMain, ImageBrush imageThumb, 
+            int fps, double thumbMaxW, double thumbMaxH)
         {
-            this.canvas = canvas;
-            this.canvasBg = canvasBg;
+            this.canvasMain = canvasMain;
+            this.canvasThumb = canvasThumb;
+            this.imageMain = imageMain;
+            this.imageThumb = imageThumb;
             period = (long)(1000.0 / fps);
             msgq = ActionQueue.Singleton();
-            bg = new SlideLayer();
-            fg = new PolylineLayer();
+            bg = new SlideScene();
+            fg = new PolylineScene();
             worker = new Thread(new ThreadStart(Work));
+            (this.thumbMaxW, this.thumbMaxH) = (thumbMaxW, thumbMaxH);
         }
 
         public void Start()
@@ -73,7 +89,6 @@ namespace PathFinder.Controller
                 // 「打草稿」阶段
                 foreach (var act in pendingActions)
                 {
-                    
                     if (act is GeometryAction)
                     {
                         if (act is Move)
@@ -91,6 +106,14 @@ namespace PathFinder.Controller
                         {
                             var a = act as Resize;
                             sg1.Resize(a.W, a.H);
+                        }
+                        else if (act is ThumbJumpAction)
+                        {
+                            var a = act as ThumbJumpAction;
+                            //double X = sg1.X, Y = sg1.Y;
+                            sg1.X = a.CenterX * thumbDensity - sg1.ToActualPixel(sg1.OutW) / 2;
+                            sg1.Y = a.CenterY * thumbDensity - sg1.ToActualPixel(sg1.OutH) / 2;
+                            //Console.WriteLine($"From ({X:0.0},{Y:0.0}) -> ({sg1.X},{sg1.Y})");
                         }
                     }
                     else if (act is DrawingAction)
@@ -126,6 +149,23 @@ namespace PathFinder.Controller
                             bg.Open(a.Path, sg1);
                             sg1.OutW = a.W;
                             sg1.OutH = a.H;
+                            canvasThumb.Dispatcher.Invoke(() =>
+                            {
+                                using (var ms = new System.IO.MemoryStream(bg.LoadThumbJPG()))
+                                {
+                                    var bi = new BitmapImage();
+                                    bi.BeginInit();
+                                    bi.CacheOption = BitmapCacheOption.OnLoad;
+                                    bi.StreamSource = ms;
+                                    bi.EndInit();
+                                    UniformToFill(sg1.SlideW, sg1.SlideH, 
+                                        out double thumbW, out double thumbH);
+                                    (canvasThumb.Width, canvasThumb.Height) = (thumbW, thumbH);
+                                    canvasThumb.UpdateLayout();
+                                    imageThumb.ImageSource = bi;
+                                    //Console.WriteLine($"actualWH=({canvasThumb.ActualWidth},{canvasThumb.ActualHeight})");
+                                }
+                            }, System.Windows.Threading.DispatcherPriority.Send);
                         }
                         else if (act is CloseSlide)
                         {
@@ -143,13 +183,11 @@ namespace PathFinder.Controller
                 {
                     // 先只做image layer的合成
                     // 做好了再做annotation layer
-                    byte[] img = bg.LoadRegion(sg1) as byte[];
-                    List<Drawable> items = fg.LoadRegion(sg1) as List<Drawable>;
-                    Console.WriteLine($"Need to draw {items.Count} items");
-                    canvasBg.Dispatcher.Invoke(() => 
+                    byte[] img = bg.LoadRegionBMP(sg1);
+                    List<Drawable> items = fg.LoadRegionShapes(sg1);
+                    imageMain.Dispatcher.Invoke(() => 
                     {
                         BitmapImage bi = null;
-                        #region 同步UI线程和工作线程. i.e. 更新UI (执行于UI线程)
                         using (var ms = new System.IO.MemoryStream(img))
                         {
                             bi = new BitmapImage();
@@ -158,31 +196,34 @@ namespace PathFinder.Controller
                             bi.StreamSource = ms;
                             bi.EndInit();
                         }
-                        canvasBg.ImageSource = bi;
-                        #endregion
+                        imageMain.ImageSource = bi;
                     }, System.Windows.Threading.DispatcherPriority.Send);
-                    canvas.Dispatcher.Invoke(() =>
+                    canvasMain.Dispatcher.Invoke(() =>
                     {
-                        canvas.Children.Clear();
+                        canvasMain.Children.Clear();
                         foreach (var item in items)
                         {
                             if (item is Point)
                             {
                                 var p = item as Point;
-                                DrawBullet(p.x, p.y, canvas, sg1);
+                                DrawBullet(p.x, p.y, canvasMain, sg1);
                             }
                             else if (item is LineSegment)
                             {
                                 var ls = item as LineSegment;
-                                DrawLineSegment(ls.xa, ls.ya, ls.xb, ls.yb, canvas, sg1);
+                                DrawLineSegment(ls.xa, ls.ya, ls.xb, ls.yb, canvasMain, sg1);
                             }
                         }
-                        canvas.UpdateLayout();
+                        canvasMain.UpdateLayout();
                     }, System.Windows.Threading.DispatcherPriority.Send);
+                    canvasThumb.Dispatcher.Invoke(() =>
+                    {
+                        canvasThumb.Children.Clear();
+                        DrawOnThumb(canvasThumb, sg1);
+                    });
                     sg0.CopyFrom(sg1);
                     drew = false;
                 }
-                
                 
                 // 如果end-beg小于period, 则忙等到period
                 for (long end = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // 当前帧结束的时间
@@ -191,6 +232,78 @@ namespace PathFinder.Controller
                 {
                     Thread.Sleep(1); // 降低cpu占用率. 改善阅览体验.
                 }
+            }
+        }
+
+        /// <summary>
+        /// 计算缩略图的输出尺寸，模拟WPF的UniformToFill
+        /// </summary>
+        /// <param name="iw"></param>
+        /// <param name="ih"></param>
+        /// <param name="ow"></param>
+        /// <param name="oh"></param>
+        private void UniformToFill(double iw, double ih, 
+            out double ow, out double oh)
+        {
+            thumbDensity = 1;
+            // 如果缩略图比缩略窗口更宽
+            if (thumbMaxW * ih < thumbMaxH * iw)
+            {
+                ow = thumbMaxW;
+                thumbDensity = iw / ow;
+                oh = ih / thumbDensity;
+            }
+            // 如果缩略图比缩略窗口更长
+            else if (thumbMaxW * ih > thumbMaxH * iw)
+            {
+                oh = thumbMaxH;
+                thumbDensity = ih / oh;
+                ow = oh / thumbDensity;
+            }
+            // 如果缩略图和缩略窗口比例相同
+            else
+            {
+                (ow, oh) = (thumbMaxW, thumbMaxH);
+                thumbDensity =ih / oh;
+            }
+
+        }
+
+        private void DrawOnThumb(Canvas c, SceneGeometry sg)
+        {
+            // 计算缩略图框的边界
+            double lft = sg.X / thumbDensity;
+            double top = sg.Y / thumbDensity;
+            double rgt = (sg.X + sg.ToActualPixel(sg.OutW)) / thumbDensity;
+            double btm = (sg.Y + sg.ToActualPixel(sg.OutH)) / thumbDensity;
+
+            //Console.WriteLine($"{lft:0.0}, {top:0.0}, {rgt:0.0}, {btm:0.0}");
+
+            double diameter = 12;
+            // 绘制缩略图框
+            if (rgt - lft >= diameter && btm - top >= diameter)
+            {
+                Rectangle rect = new Rectangle();
+                rect.SetValue(Canvas.LeftProperty, lft);
+                rect.SetValue(Canvas.TopProperty, top);
+                rect.Width = rgt - lft;
+                rect.Height = btm - top;
+                rect.Fill = new SolidColorBrush(Color.FromArgb(127, 127, 127, 127));
+                rect.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
+                rect.StrokeThickness = 2;
+                c.Children.Add(rect);
+            }
+            else
+            {
+                Ellipse bullet = new Ellipse();
+                bullet.Height = diameter;
+                bullet.Width = diameter;
+                bullet.Fill = new SolidColorBrush(Color.FromArgb(127, 127, 127, 127));
+                bullet.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
+                bullet.StrokeThickness = 2;
+                bullet.SetValue(Canvas.LeftProperty, (lft + rgt - diameter) / 2);
+                bullet.SetValue(Canvas.TopProperty, (top + btm - diameter) / 2);
+                c.Children.Add(bullet);
             }
         }
 
@@ -226,7 +339,7 @@ namespace PathFinder.Controller
             l.SetValue(Canvas.ZIndexProperty, 0);
             l.StrokeThickness = 4;
             l.Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51));
-            canvas.Children.Add(l);
+            canvasMain.Children.Add(l);
         }
     }
 }
