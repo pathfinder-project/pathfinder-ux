@@ -3,8 +3,6 @@ using System.Windows;
 using Microsoft.Win32;
 using System.Windows.Input;
 
-using PathFinder.Controller;
-using PathFinder.Controller.Actions;
 
 namespace PathFinder
 {
@@ -24,11 +22,12 @@ namespace PathFinder
 
     public partial class PathFinderMainWindow : Window
     {
-        SceneBlender blender;
-        ActionQueue aq;
+        Worker blender;
+        MessageQueue aq;
 
         BrowsingState bs;
-        DrawingState ds;
+        int pdc; // Polygon Dot Count
+        uint pid = 0;
         
         double x0 = 0;
         double x1 = 0;
@@ -39,14 +38,13 @@ namespace PathFinder
         public PathFinderMainWindow()
         {
             this.DataContext = this;
-            aq = ActionQueue.Singleton();
+            aq = MessageQueue.GetInstance();
             InitializeComponent();
             bs = BrowsingState.NoSlide;
-            ds = DrawingState.NotDrawing;
             double thumbMaxWidth = (double)this.Resources["thumbMaxWidth"];
             double thumbMaxHeight = (double)this.Resources["thumbMaxHeight"];
             //Console.WriteLine($"{thumbMaxWidth}, {thumbMaxHeight}");
-            blender = new SceneBlender(CanvasMain, CanvasThumb, CanvasMainImage, CanvasThumbImage,
+            blender = new Worker(CanvasMain, CanvasThumb, CanvasMainImage, CanvasThumbImage,
                 15, thumbMaxWidth, thumbMaxHeight);
             CanvasBackground.Visibility = Visibility.Hidden;
         }
@@ -83,9 +81,9 @@ namespace PathFinder
             Nullable<bool> result = dlg.ShowDialog();
             if (result == true)
             {
-                var act = new LoadSlide();
+                var act = new LoadSlideMessage();
                 act.Path = dlg.FileName;
-                (act.W, act.H) = (CanvasMain.ActualWidth, CanvasMain.ActualHeight);
+                (act.WCanvas, act.HCanvas) = (CanvasMain.ActualWidth, CanvasMain.ActualHeight);
                 aq.Submit(act);
                 blender.Start();
                 bs = BrowsingState.Free;
@@ -107,9 +105,9 @@ namespace PathFinder
             var p = e.GetPosition(CanvasMain);
             if (bs == BrowsingState.Moving)
             {
-                var act = new Move();
+                var act = new MoveMessage();
                 (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
-                (act.dX, act.dY) = (x0 - x1, y0 - y1);
+                (act.dXScreen, act.dYScreen) = (x0 - x1, y0 - y1);
                 aq.Submit(act);
                 (x0, y0) = (x1, y1);
             }
@@ -130,25 +128,29 @@ namespace PathFinder
             {
                 if (e.ClickCount == 1)
                 {
-                    if (ds == DrawingState.DrawingPolygon)
+                    if (pdc == 0)
                     {
-                        var act = new DrawPolygonV();
-                        act.dps = DrawPolygonState.PlacingVertex;
+                        pdc++;
+                        var act = new BulletMessage();
                         (act.X, act.Y) = (x1, y1);
+                        pid += 1;
+                        act.IdV = pid;
+                        aq.Submit(act);
+                    }
+                    else if (pdc >= 1)
+                    {
+                        pdc++;
+                        var act = new StickMessage();
+                        (act.X, act.Y) = (x1, y1);
+                        pid += 1;
+                        act.IdV1 = pid - 1;
+                        act.IdV2 = pid;
                         aq.Submit(act);
                     }
                 }
                 else if (e.ClickCount == 2)
                 {
-                    if (ds == DrawingState.DrawingPolygon)
-                    {
-                        var act = new DrawPolygonV();
-                        act.dps = DrawPolygonState.TryFinish;
-                        (act.X, act.Y) = (x1, y1);
-                        aq.Submit(act);
-                    }
-
-                    ds = DrawingState.NotDrawing;
+                    pdc = 0;
                     bs = BrowsingState.Free;
                     CanvasMain.Cursor = Cursors.Hand;
                 }
@@ -179,8 +181,8 @@ namespace PathFinder
             (w, h) = (CanvasMain.ActualWidth, CanvasMain.ActualHeight);
             if (bs != BrowsingState.NoSlide)
             {
-                var act = new Resize();
-                (act.W, act.H) = (w, h);
+                var act = new ResizeMessage();
+                (act.WScreen, act.HScreen) = (w, h);
                 aq.Submit(act);
             }
         }
@@ -197,9 +199,9 @@ namespace PathFinder
             {
                 int scroll = e.Delta;
 
-                var act = new Zoom();
+                var act = new ZoomMessage();
                 act.nScroll = scroll;
-                (act.X, act.Y) = (x1, y1);
+                (act.XScreen, act.YScreen) = (x1, y1);
                 aq.Submit(act);
             }
         }
@@ -209,13 +211,12 @@ namespace PathFinder
             if (bs == BrowsingState.Free)
             {
                 bs = BrowsingState.Locked;
-                ds = DrawingState.DrawingPolygon;
                 CanvasMain.Cursor = Cursors.Pen;
             }
-            else if (ds != DrawingState.NotDrawing)
+            else
             {
                 bs = BrowsingState.Free;
-                ds = DrawingState.NotDrawing;
+                pdc = 0;
                 CanvasMain.Cursor = Cursors.Hand;
             }
         }
@@ -226,8 +227,8 @@ namespace PathFinder
             {
                 bs = BrowsingState.Moving;
                 var p = e.GetPosition(CanvasThumb);
-                var act = new ThumbJumpAction();
-                (act.CenterX, act.CenterY) = (p.X, p.Y);
+                var act = new ThumbJumpMessage();
+                (act.CenterXScreen, act.CenterYScreen) = (p.X, p.Y);
                 Console.WriteLine($"Click ({p.X:0.0},{p.Y:0.0}) on CanvasThumb");
                 aq.Submit(act);
                 bs = BrowsingState.Free;

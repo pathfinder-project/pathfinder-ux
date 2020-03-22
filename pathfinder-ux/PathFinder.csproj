@@ -11,7 +11,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{B5F69862-B28B-47A1-B195-6377CFB4F65A}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>pathfinder_ux</RootNamespace>
+    <RootNamespace>PathFinder</RootNamespace>
     <AssemblyName>pathfinder-ux</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -129,13 +129,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="PathFinder\Controller\ActionQueue.cs" />
-    <Compile Include="PathFinder\Controller\Actions.cs" />
-    <Compile Include="PathFinder\Algorithm\Graphics.cs" />
-    <Compile Include="PathFinder\Algorithm\OrderedLinearList.cs" />
-    <Compile Include="PathFinder\Scene\Drawable.cs" />
-    <Compile Include="PathFinder\Scene\SceneGeometry.cs" />
-    <Compile Include="PathFinder\Helper.cs" />
+    <Compile Include="MessageQueue.cs" />
+    <Compile Include="Messages.cs" />
+    <Compile Include="Polylines.cs" />
+    <Compile Include="OrderedLinearList.cs" />
+    <Compile Include="Viewport.cs" />
+    <Compile Include="Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\DeepZoomGeneratorFormatExtensions.cs" />
     <Compile Include="OpenSlideNET\ImageExtensions\OpenSlideImageAssociatedImageExtensions.cs" />
@@ -151,9 +150,9 @@
     <Compile Include="OpenSlideNET\OpenSlideImagePropertyExtensions.cs" />
     <Compile Include="OpenSlideNET\OpenSlideUnsupportedFormatException.cs" />
     <Compile Include="OpenSlideNET\ThrowHelper.cs" />
-    <Compile Include="PathFinder\Scene\PolylineScene.cs" />
-    <Compile Include="PathFinder\Scene\SlideScene.cs" />
-    <Compile Include="PathFinder\Controller\SceneBlender.cs" />
+    <Compile Include="PolylineAnnotation.cs" />
+    <Compile Include="Slide.cs" />
+    <Compile Include="Worker.cs" />
     <Page Include="PathFinderMainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
