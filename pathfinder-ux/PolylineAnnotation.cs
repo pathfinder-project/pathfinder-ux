@@ -93,24 +93,22 @@ namespace PathFinder.Scene
             idv2 = (uint)(ide & 0x0000_0000_ffff_ffff);
         }
 
-        public List<object> LoadRegionShapes(Viewport vp, double margin = 2)
+        public List<DisplayParameter> LoadRegionShapes(Viewport vp, double margin = 2)
         {
             double left, top, right, bottom;
             left = vp.X - margin;
             top = vp.Y - margin;
             right = vp.X + vp.ToActualPixel(vp.OutW) + margin;
             bottom = vp.Y + vp.ToActualPixel(vp.OutH) + margin;
-            var toShow = new List<object>();
+            var toShow = new List<DisplayParameter>();
 
             foreach (var v in V.Values)
             {
                 double x = v.x, y = v.y;
-                Console.WriteLine($"Before checking vertex ({x}, {y})");
                 uint idv = v.id;
                 if (EncodePoint(left, top, right, bottom, x, y) == cINSIDE)
                 {
-                    Console.WriteLine($"After checking vertex ({x}, {y})");
-                    toShow.Add((idv, x, y));
+                    toShow.Add(new BulletParameter(idv, x, y));
                 }
             }
 
@@ -122,13 +120,13 @@ namespace PathFinder.Scene
                 ClipByWindow(
                     left, top, right, bottom,
                     xa, ya, xb, yb,
-                    out double x1, out double x2, out double y1, out double y2
+                    out double x1, out double y1, out double x2, out double y2
                 );
                 if (!double.IsNaN(x1))
                 {
-                    if (x1 != x2 && y1 != y2)
+                    if (x1 != x2 || y1 != y2)
                     {
-                        toShow.Add((ide, x1, y1, x2, y2));
+                        toShow.Add(new StickParameter(ide, x1, y1, x2, y2));
                     }
                 }
             }
@@ -529,6 +527,40 @@ namespace PathFinder.Scene
                     }
                 }
             }
+        }
+    }
+
+    abstract class DisplayParameter { }
+
+    class BulletParameter : DisplayParameter
+    {
+        public uint id;
+        public double x;
+        public double y;
+
+        public BulletParameter(uint id, double x, double y)
+        {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    class StickParameter : DisplayParameter
+    {
+        public ulong id;
+        public double x1;
+        public double y1;
+        public double x2;
+        public double y2;
+
+        public StickParameter(ulong id, double x1, double y1, double x2, double y2)
+        {
+            this.id = id;
+            this.x1 = x1;
+            this.y1 = y1;
+            this.x2 = x2;
+            this.y2 = y2;
         }
     }
 }

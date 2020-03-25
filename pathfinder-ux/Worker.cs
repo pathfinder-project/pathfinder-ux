@@ -11,8 +11,6 @@ using System.Windows.Shapes;
 
 namespace PathFinder
 {
-    using BulletParameter = Tuple<uint, double, double>;
-    using StickParameter = Tuple<ulong, double, double, double, double>;
 
     class Worker
     {
@@ -173,7 +171,7 @@ namespace PathFinder
                 if (v1.GetHashCode() != v0.GetHashCode() || drew)
                 {
                     byte[] img = slide.LoadRegionBMP(v1);
-                    List<object> items = poly.LoadRegionShapes(v1);
+                    List<DisplayParameter> items = poly.LoadRegionShapes(v1);
                     canvasMain.Dispatcher.Invoke(() =>
                     {
                         #region 重新绘制矢量物体
@@ -300,9 +298,8 @@ namespace PathFinder
 
         private void DrawBullet(BulletParameter bp, Viewport v)
         {
-            (uint __id, double x, double y) = bp;
-            x = v.ToDisplayPixel(x);
-            y = v.OutH - v.ToDisplayPixel(y);
+            double x = v.ToDisplayPixel(bp.x - v.X);
+            double y = v.OutH - v.ToDisplayPixel(bp.y - v.Y);
 
             Ellipse bullet = new Ellipse();
             bullet.SetValue(Canvas.LeftProperty, x - 8);
@@ -314,17 +311,19 @@ namespace PathFinder
             bullet.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
             bullet.StrokeThickness = 4;
 
-            bullet.DataContext = bp;
+            bullet.DataContext = bp.id;
             canvasMain.Children.Add(bullet);
         }
 
         private void DrawStick(StickParameter sp, Viewport v)
         {
-            (ulong __id, double x1, double y1, double x2, double y2) = sp;
-            x1 = v.ToDisplayPixel(x1);
-            y1 = v.OutH - v.ToDisplayPixel(y1);
-            x2 = v.ToDisplayPixel(x2);
-            y2 = v.OutH - v.ToDisplayPixel(y2);
+            Console.WriteLine($"StickParameter {sp.x1} {sp.y1} {sp.x2} {sp.y2}");
+            double x1 = v.ToDisplayPixel(sp.x1 - v.X);
+            double y1 = v.OutH - v.ToDisplayPixel(sp.y1 - v.Y);
+            double x2 = v.ToDisplayPixel(sp.x2 - v.X);
+            double y2 = v.OutH - v.ToDisplayPixel(sp.y2 - v.Y);
+
+            Console.WriteLine($"DrawStick #{sp.id} at ({x1:.0},{y1:.0})-({x2:.0},{y2:.0})");
 
             Line l = new Line();
             (l.X1, l.Y1, l.X2, l.Y2) = (x1, y1, x2, y2);
@@ -332,7 +331,7 @@ namespace PathFinder
             l.StrokeThickness = 4;
             l.Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51));
 
-            l.DataContext = sp;
+            l.DataContext = sp.id;
             canvasMain.Children.Add(l);
         }
     }
