@@ -2,7 +2,7 @@
 using System.Windows;
 using Microsoft.Win32;
 using System.Windows.Input;
-
+using System.Windows.Shapes;
 
 namespace PathFinder
 {
@@ -229,9 +229,17 @@ namespace PathFinder
                 var p = e.GetPosition(CanvasThumb);
                 var act = new ThumbJumpMessage();
                 (act.CenterXScreen, act.CenterYScreen) = (p.X, p.Y);
-                Console.WriteLine($"Click ({p.X:0.0},{p.Y:0.0}) on CanvasThumb");
                 aq.Submit(act);
                 bs = BrowsingState.Free;
+            }
+        }
+
+        private void Bullet_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var b = sender as Ellipse;
+            if (b.DataContext != null)
+            {
+                
             }
         }
     }
