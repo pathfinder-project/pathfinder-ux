@@ -129,6 +129,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ControlLogic.cs" />
     <Compile Include="MessageQueue.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="Polylines.cs" />
