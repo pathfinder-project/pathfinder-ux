@@ -53,14 +53,14 @@ namespace PathFinder
     #region 画笔消息
     abstract class PolylineMessage : Message { }
 
-    class BulletMessage : PolylineMessage
+    class VertexMessage : PolylineMessage
     {
         public double X;
         public double Y;
         public uint IdV;
     }
 
-    class StickMessage : PolylineMessage
+    class EdgeMessgae : PolylineMessage
     {
         public double X;
         public double Y;
@@ -68,5 +68,11 @@ namespace PathFinder
         public uint IdV2;
     }
 
+    class MoveVertexMessgae : PolylineMessage
+    {
+        public uint IdV;
+        public double dXScreen;
+        public double dYScreen;
+    }
     #endregion
 }

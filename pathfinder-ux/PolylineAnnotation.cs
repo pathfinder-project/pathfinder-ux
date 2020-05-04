@@ -57,21 +57,11 @@ namespace PathFinder.Scene
             E.Add(ide);
         }
 
-        public void InsertVertex(double x_slide, double y_slide,
-            Guid idv, Guid ide0, Guid ide1, Guid ide2)
+        public void MoveVertex(uint idv, double dx_slide, double dy_slide)
         {
-
-        }
-
-        public void MoveVertex(double x_slide, double y_slide, 
-            Guid idv)
-        {
-
-        }
-
-        public void EraseVertex(Guid idv)
-        {
-
+            Vertex v = V[idv];
+            v.x += dx_slide;
+            v.y += dy_slide;
         }
         
         private void EncodeEdgeId(uint idv1, uint idv2, out ulong ide)

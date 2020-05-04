@@ -116,19 +116,26 @@ namespace PathFinder
                     else if (act is PolylineMessage)
                     {
                         drew = true;
-                        if (act is BulletMessage)
+                        if (act is VertexMessage)
                         {
-                            var a = act as BulletMessage;
+                            var a = act as VertexMessage;
                             double x = v1.X + v1.ToActualPixel(a.X);
                             double y = v1.Y + v1.ToActualPixel(a.Y);
                             poly.Bullet(x, y, a.IdV);
                         }
-                        else if (act is StickMessage)
+                        else if (act is EdgeMessgae)
                         {
-                            var a = act as StickMessage;
+                            var a = act as EdgeMessgae;
                             double x = v1.X + v1.ToActualPixel(a.X);
                             double y = v1.Y + v1.ToActualPixel(a.Y);
                             poly.Stick(x, y, a.IdV1, a.IdV2);
+                        }
+                        else if (act is MoveVertexMessgae)
+                        {
+                            var a = act as MoveVertexMessgae;
+                            double dx_slide = v1.ToActualPixel(a.dXScreen);
+                            double dy_slide = v1.ToActualPixel(a.dYScreen);
+                            poly.MoveVertex(a.IdV, dx_slide, dy_slide);
                         }
                     }
                     else if (act is FileMessage)

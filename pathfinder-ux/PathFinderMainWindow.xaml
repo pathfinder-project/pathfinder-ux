@@ -10,7 +10,8 @@
         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Padding="0" WindowStyle="SingleBorderWindow" 
         MinWidth="1024" MinHeight="768" Background="#FF947B89" 
         Closing="Window_Closing"
-        KeyDown="Window_KeyDown">
+        KeyDown="Window_KeyDown"
+        KeyUp="Window_KeyUp">
     <Window.Resources>
         <sys:Double x:Key="thumbMaxWidth">200</sys:Double>
         <sys:Double x:Key="thumbMaxHeight">500</sys:Double>
@@ -58,7 +59,8 @@
             <Button Grid.Row="1" x:Name="ButtonToolbarBrowse" Height="48" Width="48" Margin="0" 
                     VerticalAlignment="Center" HorizontalAlignment="Center"
                     Background="{x:Null}" 
-                    BorderBrush="{x:Null}" BorderThickness="1">
+                    BorderBrush="{x:Null}" BorderThickness="1"
+                    Click="ButtonToolbarBrowsing_Click">
                 <StackPanel Orientation="Horizontal" Margin="0">
                     <Image Source="assets/move-96p.png"/>
                 </StackPanel>
@@ -117,6 +119,8 @@
                     MouseMove="CanvasMain_MouseMove"
                     MouseLeftButtonDown="CanvasMain_MouseLeftButtonDown"
                     MouseLeftButtonUp="CanvasMain_MouseLeftButtonUp"
+                    MouseRightButtonDown="CanvasMain_MouseRightButtonDown"
+                    MouseRightButtonUp="CanvasMain_MouseRightButtonUp"
                     MouseLeave="CanvasMain_MouseLeave"
                     MouseWheel="CanvasMain_MouseWheel"
                     SizeChanged="CanvasMain_SizeChanged"
