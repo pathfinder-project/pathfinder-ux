@@ -74,5 +74,12 @@ namespace PathFinder
         public double dXScreen;
         public double dYScreen;
     }
+
+    class DeleteVertexMessage: PolylineMessage
+    {
+        public uint IdV;
+    }
+
+    
     #endregion
 }

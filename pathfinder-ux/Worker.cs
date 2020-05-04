@@ -137,6 +137,11 @@ namespace PathFinder
                             double dy_slide = v1.ToActualPixel(a.dYScreen);
                             poly.MoveVertex(a.IdV, dx_slide, dy_slide);
                         }
+                        else if (act is DeleteVertexMessage)
+                        {
+                            var a = act as DeleteVertexMessage;
+                            poly.DeleteVertex(a.IdV);
+                        }
                     }
                     else if (act is FileMessage)
                     {

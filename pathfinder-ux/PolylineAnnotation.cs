@@ -55,6 +55,7 @@ namespace PathFinder.Scene
             V.Add(idv2, v2);
             EncodeEdgeId(idv1, idv2, out ulong ide);
             E.Add(ide);
+            v2.ConnectWith(v1);
         }
 
         public void MoveVertex(uint idv, double dx_slide, double dy_slide)
@@ -64,6 +65,26 @@ namespace PathFinder.Scene
             v.y += dy_slide;
         }
         
+        public void DeleteVertex(uint idv2)
+        {
+            Vertex v = V[idv2];
+            v.GetNeighbours(out uint idv1, out uint idv3);
+            Console.WriteLine($"idv1={idv1}, idv2={idv2}, idv3={idv3}");
+            if (idv1 != 0)
+            {
+                EncodeEdgeId(idv1, idv2, out ulong ide12);
+                E.Remove(ide12);
+                v.DisconnectWith(V[idv1]);
+            }
+            if (idv3 != 0)
+            {
+                EncodeEdgeId(idv2, idv3, out ulong ide23);
+                E.Remove(ide23);
+                v.DisconnectWith(V[idv3]);
+            }
+            V.Remove(idv2);
+        }
+
         private void EncodeEdgeId(uint idv1, uint idv2, out ulong ide)
         {
             ulong _idv1 = (ulong)idv1;

@@ -33,6 +33,21 @@ namespace PathFinder
             return (a == null) ^ (b == null);
         }
 
+        public void GetNeighbours(out uint ia, out uint ib)
+        {
+            ia = ib = 0;
+            if (a != null)
+            {
+                ia = a.idv;
+                Console.WriteLine($"ia={ia}");
+            }
+            if (b != null)
+            {
+                ib = b.idv;
+                Console.WriteLine($"ib={ib}");
+            }
+        }
+
         /// <summary>
         /// 把自己和顶点v连起来
         /// </summary>
@@ -69,17 +84,19 @@ namespace PathFinder
         }
 
         /// <summary>
-        /// 把自己和两个邻居断开
+        /// 把自己和邻居断开
         /// </summary>
-        public void Erase()
+        public void DisconnectWith(Vertex v)
         {
-            if (a != null)
+            if (v == a)
             {
-                a.b = null;
+                a = null;
+                v.b = null;
             }
-            if (b != null)
+            else if (v == b)
             {
-                b.a = null;
+                b = null;
+                v.a = null;
             }
         }
     }

@@ -177,7 +177,9 @@ namespace PathFinder
                     var bullet = t as Ellipse;
                     if (deleting)
                     {
-                        var act = new 
+                        var act = new DeleteVertexMessage();
+                        act.IdV = (uint)bullet.DataContext;
+                        aq.Submit(act);
                     }
                 }
                 else if (t is Line)
@@ -302,21 +304,17 @@ namespace PathFinder
         #region 快捷键
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
-            {
-                Init();
-            }
-            else if (e.Key == Key.Back || e.Key == Key.Delete)
-            {
-                deleting = true;
-            }
         }
 
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.Escape)
+            {
+                Init();
+            }
             if (e.Key == Key.Back || e.Key == Key.Delete)
             {
-                deleting = false;
+                deleting = !deleting;
             }
         }
         #endregion
