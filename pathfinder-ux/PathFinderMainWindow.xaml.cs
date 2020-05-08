@@ -14,17 +14,22 @@ namespace PathFinder
     {
         private readonly int Idle = -1;
         private readonly int Browsing = 0;
-        private readonly int Polyline = 1;
+        private readonly int Moving = 1;
+        private readonly int Polyline = 2;
+        private readonly int PolylineMovingVertex = 3;
+        private readonly int PolylineEraser = 4;
 
         private Worker blender;
         private MessageQueue aq;
 
         private int operation;
-        private bool dragging;
-        private bool deleting;
+        private int prev_operation;
 
         private uint pid;
         private uint pdc;
+
+        private bool dragging;
+
         private double x0;
         private double x1;
         private double y0;
@@ -136,6 +141,9 @@ namespace PathFinder
         private void CanvasMain_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(CanvasMain);
+            x1 = p.X;
+            y1 = CanvasMain.ActualHeight - p.Y;
+            object t = WhatUnderCursor(p);
 
             if (operation == Browsing)
             {
@@ -144,14 +152,10 @@ namespace PathFinder
             }
             else if (operation == Polyline)
             {
-                x1 = p.X;
-                y1 = CanvasMain.ActualHeight - p.Y;
-                object t = WhatUnderCursor(p);
-
-                // 在空白处点击，则创建新节点
+                #region 在空白处点击，则创建新折线
                 if (t is Canvas)
                 {
-                    // 开启新的连续画点
+                    #region 首次在空白处点击，创建新点
                     if (pdc == 0)
                     {
                         pdc = pdc + 1;
@@ -161,6 +165,9 @@ namespace PathFinder
                         act.IdV = pid;
                         aq.Submit(act);
                     }
+                    #endregion
+
+                    #region 连续第>=2次在空白处点击，创建新点并与上一个点连成新边
                     else if (pdc >= 1)
                     {
                         pdc = pdc + 1;
@@ -171,21 +178,19 @@ namespace PathFinder
                         act.IdV2 = pid;
                         aq.Submit(act);
                     }
+                    #endregion
                 }
+                #endregion
+
+                #region 在节点上点击，则从节点接续折线
                 else if (t is Ellipse)
                 {
+                    #region 在节点上点击，检查节点是否已有2条边
                     var bullet = t as Ellipse;
-                    if (deleting)
-                    {
-                        var act = new DeleteVertexMessage();
-                        act.IdV = (uint)bullet.DataContext;
-                        aq.Submit(act);
-                    }
-                }
-                else if (t is Line)
-                {
+                    #endregion
 
                 }
+                #endregion
             }
         }
 
@@ -314,7 +319,15 @@ namespace PathFinder
             }
             if (e.Key == Key.Back || e.Key == Key.Delete)
             {
-                deleting = !deleting;
+                if (operation != PolylineEraser)
+                {
+                    prev_operation = operation;
+                    operation = PolylineEraser;
+                }
+                else
+                {
+                    operation = prev_operation;
+                }
             }
         }
         #endregion
