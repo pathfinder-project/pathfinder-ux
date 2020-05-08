@@ -15,9 +15,9 @@ namespace PathFinder
         private readonly int Idle = -1;
         private readonly int Browsing = 0;
         private readonly int Moving = 1;
-        private readonly int Polyline = 2;
+        private readonly int PolylineDrawing = 2;
         private readonly int PolylineMovingVertex = 3;
-        private readonly int PolylineEraser = 4;
+        private readonly int PolylineErasingVertex = 4;
 
         private Worker blender;
         private MessageQueue aq;
@@ -35,7 +35,7 @@ namespace PathFinder
         private double y0;
         private double y1;
 
-        private Ellipse toggled;
+        private uint idv_toggle;
 
         private Stack<Cursor> cursorHistory;
 
@@ -116,16 +116,15 @@ namespace PathFinder
                 {
                     DragSlide(p);
                 }
-                else if (operation == Polyline)
+                else if (operation == PolylineDrawing)
                 {
-                    if (toggled == null) // 右键拖动背景
+                    if (idv_toggle == 0) // 右键拖动背景
                     {
                         DragSlide(p);
                     }
                     else // 右键拖动顶点
                     {
-                        uint idv = (uint)(toggled.DataContext);
-                        DragBullet(idv, p);
+                        DragBullet(idv_toggle, p);
                     }
                 }
             }
@@ -150,32 +149,32 @@ namespace PathFinder
                 StartDrag(p);
                 PushCursor(Cursors.ScrollAll);
             }
-            else if (operation == Polyline)
+            else if (operation == PolylineDrawing)
             {
                 #region 在空白处点击，则创建新折线
                 if (t is Canvas)
                 {
                     #region 首次在空白处点击，创建新点
-                    if (pdc == 0)
+                    if (idv_toggle == 0)
                     {
                         pdc = pdc + 1;
                         var act = new VertexMessage();
                         (act.X, act.Y) = (x1, y1);
                         pid = pid + 1;
-                        act.IdV = pid;
+                        act.IdV = idv_toggle = pid;
                         aq.Submit(act);
                     }
                     #endregion
 
                     #region 连续第>=2次在空白处点击，创建新点并与上一个点连成新边
-                    else if (pdc >= 1)
+                    else
                     {
                         pdc = pdc + 1;
                         var act = new EdgeMessgae();
                         (act.X, act.Y) = (x1, y1);
                         pid = pid + 1;
-                        act.IdV1 = pid - 1;
-                        act.IdV2 = pid;
+                        act.IdV1 = idv_toggle;
+                        act.IdV2 = idv_toggle = pid;
                         aq.Submit(act);
                     }
                     #endregion
@@ -188,7 +187,6 @@ namespace PathFinder
                     #region 在节点上点击，检查节点是否已有2条边
                     var bullet = t as Ellipse;
                     #endregion
-
                 }
                 #endregion
             }
@@ -208,7 +206,7 @@ namespace PathFinder
             if (dragging)
             {
                 StopDrag();
-                toggled = null;
+                idv_toggle = 0;
                 PopCursor();
             }
         }
@@ -222,7 +220,7 @@ namespace PathFinder
                 StartDrag(p);
                 PushCursor(Cursors.ScrollAll);
             }
-            else if (operation == Polyline)
+            else if (operation == PolylineDrawing)
             {
                 object t = WhatUnderCursor(p);
                 if (t is Canvas)
@@ -232,7 +230,8 @@ namespace PathFinder
                 }
                 else if (t is Ellipse)
                 {
-                    toggled = t as Ellipse;
+                    var bullet = t as Ellipse;
+                    idv_toggle = (uint)bullet.DataContext;
                     StartDrag(p);
                     PushCursor(Cursors.Hand);
                 }
@@ -244,7 +243,7 @@ namespace PathFinder
             if (dragging)
             {
                 StopDrag();
-                toggled = null;
+                idv_toggle = 0;
                 PopCursor();
             }
         }
@@ -300,7 +299,7 @@ namespace PathFinder
 
         private void ButtonToolbarPolyline_Click(object sender, RoutedEventArgs e)
         {
-            operation = Polyline;
+            operation = PolylineDrawing;
             PushCursor(Cursors.Pen);
         }
         #endregion
@@ -313,16 +312,20 @@ namespace PathFinder
 
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
+            #region 松开ESC键
             if (e.Key == Key.Escape)
             {
                 Init();
             }
-            if (e.Key == Key.Back || e.Key == Key.Delete)
+            #endregion
+
+
+            else if (e.Key == Key.Back || e.Key == Key.Delete)
             {
-                if (operation != PolylineEraser)
+                if (operation != PolylineErasingVertex)
                 {
                     prev_operation = operation;
-                    operation = PolylineEraser;
+                    operation = PolylineErasingVertex;
                 }
                 else
                 {
@@ -391,14 +394,11 @@ namespace PathFinder
             operation = Browsing;
             dragging = false;
 
-            //pid = 0;
-            pdc = 0;
-
             x0 = x1 = y0 = y1 = 0;
             cursorHistory.Clear();
             PopCursor();
 
-            toggled = null;
+            idv_toggle = 0;
         }
 
         private void PushCursor(Cursor c)
