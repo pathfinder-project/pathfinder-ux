@@ -10,42 +10,15 @@ namespace PathFinder
     {
         public double x;
         public double y;
-        private uint idv;
-        private Vertex a;
-        private Vertex b;
+        public uint ida { get; set; }
+        public uint idb { get; set; }
 
-        public uint id
-        {
-            get { return idv; }
-            set
-            {
-                idv = value;
-            }
-        }
+        public uint id { get; set; }
 
         public Vertex(uint id)
         {
-            this.idv = id;
-        }
-
-        public bool IsHead()
-        {
-            return (a == null) ^ (b == null);
-        }
-
-        public void GetNeighbours(out uint ia, out uint ib)
-        {
-            ia = ib = 0;
-            if (a != null)
-            {
-                ia = a.idv;
-                Console.WriteLine($"ia={ia}");
-            }
-            if (b != null)
-            {
-                ib = b.idv;
-                Console.WriteLine($"ib={ib}");
-            }
+            this.id = id;
+            this.ida = this.idb = 0;
         }
 
         /// <summary>
@@ -54,33 +27,19 @@ namespace PathFinder
         /// <param name="v"></param>
         public bool ConnectWith(Vertex v)
         {
-            if (v.idv < idv && a == null && v.b == null)
+            if (v.id < id && ida == 0 && v.idb == 0)
             {
-                a = v;
-                v.b = this;
+                ida = v.id;
+                v.idb = id;
                 return true;
             }
-            else if (v.idv > idv && b == null && v.a == null)
+            else if (v.id > id && idb == 0 && v.ida == 0)
             {
-                b = v;
-                v.a = this;
+                idb = v.id;
+                v.ida = id;
                 return true;
             }
             return false;
-        }
-
-        public void ForceConnectWith(Vertex v)
-        {
-            if (v.idv < idv)
-            {
-                a = v;
-                v.b = this;
-            }
-            else if (v.idv > idv)
-            {
-                b = v;
-                v.a = this;
-            }
         }
 
         /// <summary>
@@ -88,15 +47,13 @@ namespace PathFinder
         /// </summary>
         public void DisconnectWith(Vertex v)
         {
-            if (v == a)
+            if (v.id == ida)
             {
-                a = null;
-                v.b = null;
+                ida = v.idb = 0;
             }
-            else if (v == b)
+            else if (v.id == idb)
             {
-                b = null;
-                v.a = null;
+                idb = v.ida = 0;
             }
         }
     }

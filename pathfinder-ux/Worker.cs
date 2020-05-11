@@ -323,7 +323,7 @@ namespace PathFinder
             bullet.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
             bullet.StrokeThickness = 4;
 
-            bullet.DataContext = bp.id;
+            bullet.DataContext = (bp.id, bp.ida, bp.idb);
             canvasMain.Children.Add(bullet);
         }
 

@@ -49,10 +49,10 @@ namespace PathFinder.Scene
             else
             {
                 v2 = new Vertex(idv2);
+                V.Add(idv2, v2);
             }
             v2.x = x2_slide;
             v2.y = y2_slide;
-            V.Add(idv2, v2);
             EncodeEdgeId(idv1, idv2, out ulong ide);
             E.Add(ide);
             v2.ConnectWith(v1);
@@ -68,8 +68,8 @@ namespace PathFinder.Scene
         public void DeleteVertex(uint idv2)
         {
             Vertex v = V[idv2];
-            v.GetNeighbours(out uint idv1, out uint idv3);
-            Console.WriteLine($"idv1={idv1}, idv2={idv2}, idv3={idv3}");
+            uint idv1 = v.ida;
+            uint idv3 = v.idb;
             if (idv1 != 0)
             {
                 EncodeEdgeId(idv1, idv2, out ulong ide12);
@@ -116,10 +116,16 @@ namespace PathFinder.Scene
             foreach (var v in V.Values)
             {
                 double x = v.x, y = v.y;
-                uint idv = v.id;
                 if (EncodePoint(left, top, right, bottom, x, y) == cINSIDE)
                 {
-                    toShow.Add(new BulletParameter(idv, x, y));
+                    toShow.Add(new BulletParameter()
+                    {
+                        id = v.id,
+                        ida = v.ida,
+                        idb = v.idb,
+                        x = v.x,
+                        y = v.y,
+                    });
                 }
             }
 
@@ -546,15 +552,10 @@ namespace PathFinder.Scene
     class BulletParameter : DisplayParameter
     {
         public uint id;
+        public uint ida;
+        public uint idb;
         public double x;
         public double y;
-
-        public BulletParameter(uint id, double x, double y)
-        {
-            this.id = id;
-            this.x = x;
-            this.y = y;
-        }
     }
 
     class StickParameter : DisplayParameter

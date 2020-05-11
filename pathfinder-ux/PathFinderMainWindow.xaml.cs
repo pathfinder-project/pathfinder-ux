@@ -9,6 +9,7 @@ using System.Collections.Generic;
 
 namespace PathFinder
 {
+    using id_ida_idb = ValueTuple<uint, uint, uint>;
 
     public partial class PathFinderMainWindow : Window
     {
@@ -186,6 +187,23 @@ namespace PathFinder
                 {
                     #region 在节点上点击，检查节点是否已有2条边
                     var bullet = t as Ellipse;
+                    var ctx = (id_ida_idb)bullet.DataContext;
+                    uint idv = ctx.Item1, ida = ctx.Item2, idb = ctx.Item3;
+                    if (ida == 0 || idb == 0)
+                    {
+                        if (idv_toggle == 0)
+                        {
+                            idv_toggle = idv;
+                        }
+                        else
+                        {
+                            var act = new EdgeMessgae();
+                            (act.X, act.Y) = (x1, y1);
+                            act.IdV1 = idv_toggle;
+                            act.IdV2 = idv_toggle = idv;
+                            aq.Submit(act);
+                        }
+                    }
                     #endregion
                 }
                 #endregion
@@ -231,7 +249,7 @@ namespace PathFinder
                 else if (t is Ellipse)
                 {
                     var bullet = t as Ellipse;
-                    idv_toggle = (uint)bullet.DataContext;
+                    idv_toggle = ((id_ida_idb)bullet.DataContext).Item1;
                     StartDrag(p);
                     PushCursor(Cursors.Hand);
                 }
