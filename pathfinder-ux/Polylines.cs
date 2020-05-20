@@ -10,36 +10,44 @@ namespace PathFinder
     {
         public double x;
         public double y;
-        public uint ida { get; set; }
-        public uint idb { get; set; }
+        public uint idl { get; set; }
+        public uint idr { get; set; }
 
         public uint id { get; set; }
 
         public Vertex(uint id)
         {
             this.id = id;
-            this.ida = this.idb = 0;
+            this.idl = this.idr = 0;
         }
 
         /// <summary>
         /// 把自己和顶点v连起来
         /// </summary>
         /// <param name="v"></param>
-        public bool ConnectWith(Vertex v)
+        public static bool Connect(Vertex v1, Vertex v2)
         {
-            if (v.id < id && ida == 0 && v.idb == 0)
+            if (v1.id == v2.id)
             {
-                ida = v.id;
-                v.idb = id;
+                return false;
+            }
+            else if (v1.idl == 0 && v2.idr == 0)
+            {
+                v1.idl = v2.id;
+                v2.idr = v1.id;
                 return true;
             }
-            else if (v.id > id && idb == 0 && v.ida == 0)
+            else if (v1.idr == 0 && v2.idl == 0)
             {
-                idb = v.id;
-                v.ida = id;
+                v1.idr = v2.id;
+                v2.idl = v1.id;
                 return true;
             }
-            return false;
+            else
+            {
+                return false;
+            }
+            //Console.WriteLine($"v1[{v1.id}, {v1.idl}, {v1.idr}], v2[{v2.id}, {v2.idl}, {v2.idr}]");
         }
 
         /// <summary>
@@ -47,13 +55,13 @@ namespace PathFinder
         /// </summary>
         public void DisconnectWith(Vertex v)
         {
-            if (v.id == ida)
+            if (v.id == idl)
             {
-                ida = v.idb = 0;
+                idl = v.idr = 0;
             }
-            else if (v.id == idb)
+            else if (v.id == idr)
             {
-                idb = v.ida = 0;
+                idr = v.idl = 0;
             }
         }
     }

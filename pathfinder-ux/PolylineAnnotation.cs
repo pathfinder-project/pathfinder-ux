@@ -55,7 +55,7 @@ namespace PathFinder.Scene
             v2.y = y2_slide;
             EncodeEdgeId(idv1, idv2, out ulong ide);
             E.Add(ide);
-            v2.ConnectWith(v1);
+            Vertex.Connect(v1, v2);
         }
 
         public void MoveVertex(uint idv, double dx_slide, double dy_slide)
@@ -68,8 +68,8 @@ namespace PathFinder.Scene
         public void DeleteVertex(uint idv2)
         {
             Vertex v = V[idv2];
-            uint idv1 = v.ida;
-            uint idv3 = v.idb;
+            uint idv1 = v.idl;
+            uint idv3 = v.idr;
             if (idv1 != 0)
             {
                 EncodeEdgeId(idv1, idv2, out ulong ide12);
@@ -121,8 +121,8 @@ namespace PathFinder.Scene
                     toShow.Add(new BulletParameter()
                     {
                         id = v.id,
-                        ida = v.ida,
-                        idb = v.idb,
+                        ida = v.idl,
+                        idb = v.idr,
                         x = v.x,
                         y = v.y,
                     });

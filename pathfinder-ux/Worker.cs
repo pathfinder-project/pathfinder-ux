@@ -324,6 +324,7 @@ namespace PathFinder
             bullet.StrokeThickness = 4;
 
             bullet.DataContext = (bp.id, bp.ida, bp.idb);
+            //Console.WriteLine($"v={bp.id}, a={bp.ida}, b={bp.idb}");
             canvasMain.Children.Add(bullet);
         }
 

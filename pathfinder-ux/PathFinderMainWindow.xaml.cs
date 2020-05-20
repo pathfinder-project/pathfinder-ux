@@ -197,11 +197,27 @@ namespace PathFinder
                         }
                         else
                         {
-                            var act = new EdgeMessgae();
-                            (act.X, act.Y) = (x1, y1);
-                            act.IdV1 = idv_toggle;
-                            act.IdV2 = idv_toggle = idv;
-                            aq.Submit(act);
+                            #region 如果当前点是已满
+                            if (ida != 0 && idb != 0)
+                            {
+                                idv_toggle = 0;
+                            }
+                            #endregion
+                            else 
+                            {
+                                var act = new EdgeMessgae();
+                                (act.X, act.Y) = (x1, y1);
+                                act.IdV1 = idv_toggle;
+                                act.IdV2 = idv;
+                                aq.Submit(act);
+                                #region 如果相连后当前点会满
+                                if ((ida == 0) ^ (idb == 0))
+                                {
+                                    idv_toggle = 0;
+                                }
+                                #endregion
+                            }
+                            #endregion
                         }
                     }
                     #endregion
@@ -292,7 +308,6 @@ namespace PathFinder
             (act.XScreen, act.YScreen) = (x1, y1);
             aq.Submit(act);
         }
-        #endregion
 
 
         #region 缩略图画布
