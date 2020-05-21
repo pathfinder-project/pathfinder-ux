@@ -15,30 +15,39 @@ namespace PathFinder
     {
         private readonly int Idle = -1;
         private readonly int Browsing = 0;
-        private readonly int Moving = 1;
-        private readonly int PolylineDrawing = 2;
-        private readonly int PolylineMovingVertex = 3;
-        private readonly int PolylineErasingVertex = 4;
+        private readonly int Polyline = 2;
 
         private Worker blender;
         private MessageQueue aq;
 
         private int operation;
-        private int prev_operation;
 
         private uint pid;
         private uint pdc;
 
-        private bool dragging;
+        #region 用于拖动画布的状态
+        private bool dragging_slide;
 
-        private double x0;
-        private double x1;
-        private double y0;
-        private double y1;
+        private double x0s;
+        private double x1s;
+        private double y0s;
+        private double y1s;
+        #endregion
 
-        private uint idv_toggle;
+        #region 用于拖动节点
+        private bool dragging_vertex;
+
+        private double x1v;
+        private double y1v;
+        private double x0v;
+        private double y0v;
+        #endregion
+
+        private uint idv_snake_prev;
+        private uint idv_drag;
 
         private Stack<Cursor> cursorHistory;
+
 
         public PathFinderMainWindow()
         {
@@ -106,63 +115,43 @@ namespace PathFinder
         #region 主画布
         private void CanvasMain_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!dragging)
-            {
-                return;
-            }
             var p = e.GetPosition(CanvasMain);
-            if (e.RightButton == MouseButtonState.Pressed)
+
+            if (dragging_slide)
             {
-                if (operation == Browsing)
-                {
-                    DragSlide(p);
-                }
-                else if (operation == PolylineDrawing)
-                {
-                    if (idv_toggle == 0) // 右键拖动背景
-                    {
-                        DragSlide(p);
-                    }
-                    else // 右键拖动顶点
-                    {
-                        DragBullet(idv_toggle, p);
-                    }
-                }
+                DragSlide(p);
             }
-            else if (e.LeftButton == MouseButtonState.Pressed)
+            else if (dragging_vertex)
             {
-                if (operation == Browsing)
-                {
-                    DragSlide(p);
-                }
+                DragBullet(idv_drag, p);
             }
         }
 
         private void CanvasMain_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(CanvasMain);
-            x1 = p.X;
-            y1 = CanvasMain.ActualHeight - p.Y;
+            x1s = p.X;
+            y1s = CanvasMain.ActualHeight - p.Y;
             object t = WhatUnderCursor(p);
 
             if (operation == Browsing)
             {
-                StartDrag(p);
+                StartDragSlide(p);
                 PushCursor(Cursors.ScrollAll);
             }
-            else if (operation == PolylineDrawing)
+            else if (operation == Polyline)
             {
                 #region 在空白处点击，则创建新折线
                 if (t is Canvas)
                 {
                     #region 首次在空白处点击，创建新点
-                    if (idv_toggle == 0)
+                    if (idv_snake_prev == 0)
                     {
                         pdc = pdc + 1;
                         var act = new VertexMessage();
-                        (act.X, act.Y) = (x1, y1);
+                        (act.X, act.Y) = (x1s, y1s);
                         pid = pid + 1;
-                        act.IdV = idv_toggle = pid;
+                        act.IdV = idv_snake_prev = pid;
                         aq.Submit(act);
                     }
                     #endregion
@@ -172,10 +161,10 @@ namespace PathFinder
                     {
                         pdc = pdc + 1;
                         var act = new EdgeMessgae();
-                        (act.X, act.Y) = (x1, y1);
+                        (act.X, act.Y) = (x1s, y1s);
                         pid = pid + 1;
-                        act.IdV1 = idv_toggle;
-                        act.IdV2 = idv_toggle = pid;
+                        act.IdV1 = idv_snake_prev;
+                        act.IdV2 = idv_snake_prev = pid;
                         aq.Submit(act);
                     }
                     #endregion
@@ -191,29 +180,29 @@ namespace PathFinder
                     uint idv = ctx.Item1, ida = ctx.Item2, idb = ctx.Item3;
                     if (ida == 0 || idb == 0)
                     {
-                        if (idv_toggle == 0)
+                        if (idv_snake_prev == 0)
                         {
-                            idv_toggle = idv;
+                            idv_snake_prev = idv;
                         }
                         else
                         {
-                            #region 如果当前点是已满
+                            #region 如果当前点已满
                             if (ida != 0 && idb != 0)
                             {
-                                idv_toggle = 0;
+                                idv_snake_prev = 0;
                             }
                             #endregion
                             else 
                             {
                                 var act = new EdgeMessgae();
-                                (act.X, act.Y) = (x1, y1);
-                                act.IdV1 = idv_toggle;
+                                (act.X, act.Y) = (x1s, y1s);
+                                act.IdV1 = idv_snake_prev;
                                 act.IdV2 = idv;
                                 aq.Submit(act);
                                 #region 如果相连后当前点会满
                                 if ((ida == 0) ^ (idb == 0))
                                 {
-                                    idv_toggle = 0;
+                                    idv_snake_prev = 0;
                                 }
                                 #endregion
                             }
@@ -228,19 +217,18 @@ namespace PathFinder
 
         private void CanvasMain_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (dragging)
+            if (dragging_slide)
             {
-                StopDrag();
+                dragging_slide = false;
                 PopCursor();
             }
         }
 
         private void CanvasMain_MouseLeave(object sender, MouseEventArgs e)
         {
-            if (dragging)
+            if (dragging_slide)
             {
-                StopDrag();
-                idv_toggle = 0;
+                dragging_slide = false;
                 PopCursor();
             }
         }
@@ -251,33 +239,49 @@ namespace PathFinder
 
             if (operation == Browsing)
             {
-                StartDrag(p);
+                StartDragSlide(p);
                 PushCursor(Cursors.ScrollAll);
             }
-            else if (operation == PolylineDrawing)
+            else if (operation == Polyline)
             {
                 object t = WhatUnderCursor(p);
+
                 if (t is Canvas)
                 {
-                    StartDrag(p);
+                    StartDragSlide(p);
                     PushCursor(Cursors.ScrollAll);
                 }
                 else if (t is Ellipse)
                 {
                     var bullet = t as Ellipse;
-                    idv_toggle = ((id_ida_idb)bullet.DataContext).Item1;
-                    StartDrag(p);
-                    PushCursor(Cursors.Hand);
+                    if (e.ClickCount == 1)
+                    {
+                        idv_drag = ((id_ida_idb)bullet.DataContext).Item1;
+                        StartDragVertex(p);
+                        PushCursor(Cursors.Hand);
+                    }
+                    else if (e.ClickCount == 2)
+                    {
+                        var a = new DeleteVertexMessage();
+                        var vab = (id_ida_idb)bullet.DataContext;
+                        a.IdV = vab.Item1;
+                        aq.Submit(a);
+                    }
                 }
+                
             }
         }
 
         private void CanvasMain_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (dragging)
+            if (dragging_slide)
             {
-                StopDrag();
-                idv_toggle = 0;
+                dragging_slide = false;
+                PopCursor();
+            }
+            else if (dragging_vertex)
+            {
+                dragging_vertex = false;
                 PopCursor();
             }
         }
@@ -299,13 +303,13 @@ namespace PathFinder
             // GetPosition得到的坐标是以「左下角」为原点的.
             // 需要换算为以左上角为原点.
             var p = e.GetPosition(CanvasMain);
-            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
+            (x1s, y1s) = (p.X, CanvasMain.ActualHeight - p.Y);
 
             int scroll = e.Delta;
 
             var act = new ZoomMessage();
             act.nScroll = scroll;
-            (act.XScreen, act.YScreen) = (x1, y1);
+            (act.XScreen, act.YScreen) = (x1s, y1s);
             aq.Submit(act);
         }
 
@@ -332,7 +336,7 @@ namespace PathFinder
 
         private void ButtonToolbarPolyline_Click(object sender, RoutedEventArgs e)
         {
-            operation = PolylineDrawing;
+            operation = Polyline;
             PushCursor(Cursors.Pen);
         }
         #endregion
@@ -351,20 +355,6 @@ namespace PathFinder
                 Init();
             }
             #endregion
-
-
-            else if (e.Key == Key.Back || e.Key == Key.Delete)
-            {
-                if (operation != PolylineErasingVertex)
-                {
-                    prev_operation = operation;
-                    operation = PolylineErasingVertex;
-                }
-                else
-                {
-                    operation = prev_operation;
-                }
-            }
         }
         #endregion
 
@@ -379,21 +369,32 @@ namespace PathFinder
 
         private void StopDrag()
         {
-            dragging = false;
+            dragging_slide = false;
         }
 
         private void DragSlide(Point p)
         {
-            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
-            MoveSlide(x0 - x1, y0 - y1);
-            (x0, y0) = (x1, y1);
+            (x1s, y1s) = (p.X, CanvasMain.ActualHeight - p.Y);
+            MoveSlide(x0s - x1s, y0s - y1s);
+            (x0s, y0s) = (x1s, y1s);
         }
 
-        private void StartDrag(Point p)
+        private void StartDragSlide(Point p)
         {
-            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
-            (x0, y0) = (x1, y1);
-            dragging = true;
+            x1s = p.X;
+            y1s = CanvasMain.ActualHeight - p.Y;
+            x0s = x1s;
+            y0s = y1s;
+            dragging_slide = true;
+        }
+
+        private void StartDragVertex(Point p)
+        {
+            x1v = p.X;
+            y1v = CanvasMain.ActualHeight - p.Y;
+            x0v = x1v;
+            y0v = y1v;
+            dragging_vertex = true;
         }
 
         private void MoveBullet(uint idv, double dx, double dy)
@@ -407,9 +408,9 @@ namespace PathFinder
 
         private void DragBullet(uint idv, Point p)
         {
-            (x1, y1) = (p.X, CanvasMain.ActualHeight - p.Y);
-            MoveBullet(idv, x1 - x0, y1 - y0);
-            (x0, y0) = (x1, y1);
+            (x1v, y1v) = (p.X, CanvasMain.ActualHeight - p.Y);
+            MoveBullet(idv, x1v - x0v, y1v - y0v);
+            (x0v, y0v) = (x1v, y1v);
         }
         #endregion
 
@@ -425,13 +426,16 @@ namespace PathFinder
         private void Init()
         {
             operation = Browsing;
-            dragging = false;
+            dragging_slide = false;
+            dragging_vertex = false;
 
-            x0 = x1 = y0 = y1 = 0;
+            x0s = x1s = y0s = y1s = 0;
+            x0v = x1v = y0v = y1v = 0;
             cursorHistory.Clear();
             PopCursor();
 
-            idv_toggle = 0;
+            idv_snake_prev = 0;
+            idv_drag = 0;
         }
 
         private void PushCursor(Cursor c)
