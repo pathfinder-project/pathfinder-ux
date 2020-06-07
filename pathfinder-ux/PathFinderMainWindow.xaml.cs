@@ -9,21 +9,17 @@ using System.Collections.Generic;
 
 namespace PathFinder
 {
-    using id_ida_idb = ValueTuple<uint, uint, uint>;
 
     public partial class PathFinderMainWindow : Window
     {
+        private int operation;
+
         private readonly int Idle = -1;
         private readonly int Browsing = 0;
         private readonly int Polyline = 2;
 
         private Worker blender;
         private MessageQueue aq;
-
-        private int operation;
-
-        private uint pid;
-        private uint pdc;
 
         #region 用于拖动画布的状态
         private bool dragging_slide;
@@ -35,16 +31,17 @@ namespace PathFinder
         #endregion
 
         #region 用于拖动节点
-        private bool dragging_vertex;
-
+        private int? idv_drag;
         private double x1v;
         private double y1v;
         private double x0v;
         private double y0v;
         #endregion
 
-        private uint idv_snake_prev;
-        private uint idv_drag;
+        #region 用于创建节点
+        private int? idv_prev;
+        private int idv_pool = 1;
+        #endregion
 
         private Stack<Cursor> cursorHistory;
 
@@ -60,8 +57,8 @@ namespace PathFinder
             blender = new Worker(CanvasMain, CanvasThumb, CanvasMainImage, CanvasThumbImage,
                 15, thumbMaxWidth, thumbMaxHeight);
             CanvasBackground.Visibility = Visibility.Hidden;
-            pid = 0;
             operation = Idle;
+
             cursorHistory = new Stack<Cursor>();
         }
 
@@ -111,8 +108,6 @@ namespace PathFinder
             blender.Stop();
         }
 
-
-        #region 主画布
         private void CanvasMain_MouseMove(object sender, MouseEventArgs e)
         {
             var p = e.GetPosition(CanvasMain);
@@ -121,12 +116,17 @@ namespace PathFinder
             {
                 DragSlide(p);
             }
-            else if (dragging_vertex)
+            else if (idv_drag != null)
             {
-                DragBullet(idv_drag, p);
+                DragVertex(idv_drag.Value, p);
             }
         }
 
+        /// <summary>
+        /// 按下鼠标左键。包含拖动切片、创建节点、连接节点操作。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void CanvasMain_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(CanvasMain);
@@ -141,77 +141,59 @@ namespace PathFinder
             }
             else if (operation == Polyline)
             {
-                #region 在空白处点击，则创建新折线
+                // 在空白处点击，则创建新点
+                // 首次点击空白处——创建新点
+                // 第n次连续点击空白处——创建新点，并与上次创建的点相连
                 if (t is Canvas)
                 {
-                    #region 首次在空白处点击，创建新点
-                    if (idv_snake_prev == 0)
-                    {
-                        pdc = pdc + 1;
-                        var act = new VertexMessage();
-                        (act.X, act.Y) = (x1s, y1s);
-                        pid = pid + 1;
-                        act.IdV = idv_snake_prev = pid;
-                        aq.Submit(act);
-                    }
-                    #endregion
-
-                    #region 连续第>=2次在空白处点击，创建新点并与上一个点连成新边
-                    else
-                    {
-                        pdc = pdc + 1;
-                        var act = new EdgeMessgae();
-                        (act.X, act.Y) = (x1s, y1s);
-                        pid = pid + 1;
-                        act.IdV1 = idv_snake_prev;
-                        act.IdV2 = idv_snake_prev = pid;
-                        aq.Submit(act);
-                    }
-                    #endregion
+                    var act = new AddVertexMessage();
+                    (act.x, act.y) = (x1s, y1s);
+                    act.idv = idv_pool;
+                    act.prev = idv_prev;
+                    aq.Submit(act);
+                    idv_prev = idv_pool;
+                    idv_pool += 1;
                 }
-                #endregion
-
-                #region 在节点上点击，则从节点接续折线
+                
+                // 在节点上点击，则尝试从节点开始绘制折线
                 else if (t is Ellipse)
                 {
-                    #region 在节点上点击，检查节点是否已有2条边
                     var bullet = t as Ellipse;
-                    var ctx = (id_ida_idb)bullet.DataContext;
-                    uint idv = ctx.Item1, ida = ctx.Item2, idb = ctx.Item3;
-                    if (ida == 0 || idb == 0)
+                    var v = (V)bullet.DataContext;
+
+                    // 点击的节点<=1度
+                    if (v.prev == null || v.next == null)
                     {
-                        if (idv_snake_prev == 0)
+                        // 首次点击
+                        if (idv_prev == null)
                         {
-                            idv_snake_prev = idv;
+                            idv_prev = v.idv;
                         }
+                        // 再次点击
                         else
                         {
-                            #region 如果当前点已满
-                            if (ida != 0 && idb != 0)
+                            var act = new ConnectVertexMessage();
+                            act.idv1 = idv_prev.Value;
+                            act.idv2 = v.idv;
+                            aq.Submit(act);
+                            // 如果相连后当前点会满（即相连之前恰好为1度）
+                            if ((v.prev == null) ^ (v.next == null))
                             {
-                                idv_snake_prev = 0;
+                                idv_prev = null;
                             }
-                            #endregion
-                            else 
+                            else
                             {
-                                var act = new EdgeMessgae();
-                                (act.X, act.Y) = (x1s, y1s);
-                                act.IdV1 = idv_snake_prev;
-                                act.IdV2 = idv;
-                                aq.Submit(act);
-                                #region 如果相连后当前点会满
-                                if ((ida == 0) ^ (idb == 0))
-                                {
-                                    idv_snake_prev = 0;
-                                }
-                                #endregion
+                                idv_prev = v.idv;
                             }
-                            #endregion
                         }
                     }
-                    #endregion
+
+                    // 若点击的节点=2度，则放弃idv_prev
+                    else
+                    {
+                        idv_prev = null;
+                    }
                 }
-                #endregion
             }
         }
 
@@ -233,6 +215,11 @@ namespace PathFinder
             }
         }
 
+        /// <summary>
+        /// 右键按下，可以处理拖动切片、拖动节点、删除节点
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void CanvasMain_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(CanvasMain);
@@ -254,18 +241,23 @@ namespace PathFinder
                 else if (t is Ellipse)
                 {
                     var bullet = t as Ellipse;
+                    var v = (V)bullet.DataContext;
+
                     if (e.ClickCount == 1)
                     {
-                        idv_drag = ((id_ida_idb)bullet.DataContext).Item1;
-                        StartDragVertex(p);
+                        idv_drag = v.idv;
+                        x1v = p.X;
+                        y1v = CanvasMain.ActualHeight - p.Y;
+                        x0v = x1v;
+                        y0v = y1v; 
                         PushCursor(Cursors.Hand);
                     }
                     else if (e.ClickCount == 2)
                     {
                         var a = new DeleteVertexMessage();
-                        var vab = (id_ida_idb)bullet.DataContext;
-                        a.IdV = vab.Item1;
+                        a.idv = v.idv;
                         aq.Submit(a);
+                        idv_prev = null;
                     }
                 }
                 
@@ -279,9 +271,9 @@ namespace PathFinder
                 dragging_slide = false;
                 PopCursor();
             }
-            else if (dragging_vertex)
+            if (idv_drag != null)
             {
-                dragging_vertex = false;
+                idv_drag = null;
                 PopCursor();
             }
         }
@@ -388,25 +380,16 @@ namespace PathFinder
             dragging_slide = true;
         }
 
-        private void StartDragVertex(Point p)
-        {
-            x1v = p.X;
-            y1v = CanvasMain.ActualHeight - p.Y;
-            x0v = x1v;
-            y0v = y1v;
-            dragging_vertex = true;
-        }
-
-        private void MoveBullet(uint idv, double dx, double dy)
+        private void MoveBullet(int idv, double dx, double dy)
         {
             var act = new MoveVertexMessgae();
-            act.dXScreen = dx;
-            act.dYScreen = dy;
-            act.IdV = idv;
+            act.dx = dx;
+            act.dy = dy;
+            act.idv = idv;
             aq.Submit(act);
         }
 
-        private void DragBullet(uint idv, Point p)
+        private void DragVertex(int idv, Point p)
         {
             (x1v, y1v) = (p.X, CanvasMain.ActualHeight - p.Y);
             MoveBullet(idv, x1v - x0v, y1v - y0v);
@@ -427,15 +410,14 @@ namespace PathFinder
         {
             operation = Browsing;
             dragging_slide = false;
-            dragging_vertex = false;
 
             x0s = x1s = y0s = y1s = 0;
             x0v = x1v = y0v = y1v = 0;
             cursorHistory.Clear();
             PopCursor();
 
-            idv_snake_prev = 0;
-            idv_drag = 0;
+            idv_prev = null;
+            idv_drag = null;
         }
 
         private void PushCursor(Cursor c)

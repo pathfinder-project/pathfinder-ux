@@ -5,135 +5,352 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data.SQLite;
 
+#pragma warning disable CA2100 // 检查 SQL 查询是否存在安全漏洞
 
-namespace PathFinder.Scene
+namespace PathFinder
 {
+
+    class V
+    {
+        public int idv;
+        public int? prev;
+        public int? next;
+        public double x;
+        public double y;
+        public int head;
+        public int tail;
+
+        public V(int idv, int? prev, int? next, double x, double y, int head, int tail)
+        {
+            this.idv = idv;
+            this.prev = prev;
+            this.next = next;
+            this.x = x;
+            this.y = y;
+            this.head = head;
+            this.tail = tail;
+        }
+    }
+
+    class E
+    {
+        public double xa;
+        public double ya;
+        public double xb;
+        public double yb;
+
+        public E(double xa, double ya, double xb, double yb)
+        {
+            this.xa = xa;
+            this.ya = ya;
+            this.xb = xb;
+            this.yb = yb;
+        }
+    }
 
     class PolylineAnnotation
     {
-        private Dictionary<uint, Vertex> V;
-        private HashSet<ulong> E;
+        private SQLiteConnection conn;
+        private readonly string init_sql =
+            @"PRAGMA foreign_keys = 1;
+            create table vertex(
+                idv integer primary key default 1,
+                prev integer default null,
+                next integer default null,
+                x real default 0,
+                y real default 0,
+                head integer not null,
+                tail integer not null,
+                swap integer default null,
+                foreign key (prev) references vertex(idv) on delete set null on update cascade,
+                foreign key (next) references vertex(idv) on delete set null on update cascade,
+                foreign key (head) references vertex(idv) on delete restrict on update cascade,
+                foreign key (tail) references vertex(idv) on delete restrict on update cascade
+            );
+            create view edge (prev, next, xa, ya, xb, yb) as
+                select min(va.idv, vb.idv) as _prev, max(va.idv, vb.idv) as _next, va.x, va.y, vb.x, vb.y
+                from vertex va, vertex vb
+                where vb.prev = va.idv or va.next = vb.idv
+                group by _prev, _next;
+            ";
 
+        /// <summary>
+        /// Create a brand-new annotation.
+        /// </summary>
         public PolylineAnnotation()
         {
-            V = new Dictionary<uint, Vertex>();
-            E = new HashSet<ulong>();
-            Clear();
+            conn = new SQLiteConnection("Data Source=:memory:");
+            conn.Open();
+            
+            ExecuteSql(init_sql);
         }
 
-        public void Bullet(double x_slide, double y_slide, uint idv)
+        /// <summary>
+        /// Load an annotation from file.
+        /// </summary>
+        /// <param name="path"></param>
+        public PolylineAnnotation(string path)
         {
-            if (idv == 0)
-            {
-                return;
-            }
-            Vertex v = new Vertex(idv);
-            v.x = x_slide;
-            v.y = y_slide;
-            V.Add(idv, v);
+
         }
 
-        public void Stick(double x2_slide, double y2_slide, 
-            uint idv1, uint idv2)
+        /// <summary>
+        /// 新增一个节点
+        /// </summary>
+        /// <param name="idb">前端分配给新增节点的id</param>
+        /// <param name="x">新增节点在最大倍率下的x坐标</param>
+        /// <param name="y">新增节点在最大倍率下的y坐标</param>
+        /// <param name="ida">新增节点的前驱节点，不是头就是尾。如果存在前驱节点，则和它相连</param>
+        public void AddVertex(int idb, double x, double y, int? ida)
         {
-            if ((idv1 == 0) && (idv2 == 0))
+            string ins = $"insert into vertex (idv, x, y, head, tail) values ({idb}, {x}, {y}, {idb}, {idb}); ";
+            ExecuteSql(ins);
+            if (ida != null) // 如果存在前驱节点
             {
-                return;
+                var va = QueryVertex(ida.Value);
+                var vb = new V(idb, null, null, x, y, idb, idb);
+                if (ida == va.head)
+                {
+                    RevertChain(va.head, va.tail);
+                }
+                ConnectVertex(ida.Value, idb);
             }
-            Vertex v1 = V[idv1], v2 = null;
-            if (V.ContainsKey(idv2))
-            {
-                v2 = V[idv2];
-            }
-            else
-            {
-                v2 = new Vertex(idv2);
-                V.Add(idv2, v2);
-            }
-            v2.x = x2_slide;
-            v2.y = y2_slide;
-            EncodeEdgeId(idv1, idv2, out ulong ide);
-            E.Add(ide);
-            Vertex.Connect(v1, v2);
         }
 
-        public void MoveVertex(uint idv, double dx_slide, double dy_slide)
+        /// <summary>
+        /// 连接两个已存在的节点
+        /// 只可能是头连尾、尾连头、头连头、尾连尾四种情况
+        /// </summary>
+        /// <param name="ida">A链的头或尾节点</param>
+        /// <param name="idb">B链的头或尾节点</param>
+        public void ConnectVertex(int ida, int idb)
         {
-            Vertex v = V[idv];
-            v.x += dx_slide;
-            v.y += dy_slide;
-        }
-        
-        public void DeleteVertex(uint idv2)
-        {
-            Vertex v = V[idv2];
-            uint idv1 = v.idl;
-            uint idv3 = v.idr;
-            if (idv1 != 0)
+            var va = QueryVertex(ida);
+            var vb = QueryVertex(idb);
+
+            // A头连B尾（也包括头连孤、孤连尾、孤连孤）
+            if (va.head == ida && vb.tail == idb)
             {
-                EncodeEdgeId(idv1, idv2, out ulong ide12);
-                E.Remove(ide12);
-                v.DisconnectWith(V[idv1]);
+                ida = vb.idv;
+                idb = va.idv;
             }
-            if (idv3 != 0)
+
+            // A头连B头
+            else if (va.head == ida && vb.head == idb)
             {
-                EncodeEdgeId(idv2, idv3, out ulong ide23);
-                E.Remove(ide23);
-                v.DisconnectWith(V[idv3]);
+                RevertChain(va.head, va.tail);
             }
-            V.Remove(idv2);
+
+            // A尾连B尾
+            else if (va.tail == ida && vb.tail == idb)
+            {
+                RevertChain(vb.head, vb.tail);
+            }
+
+            // 化归成  A尾连B头  的情况
+            va = QueryVertex(ida);
+            vb = QueryVertex(idb);
+            ConnectATailToBHead(va, vb);
         }
 
-        private void EncodeEdgeId(uint idv1, uint idv2, out ulong ide)
+        /// <summary>
+        /// 把A链的尾和B链的头连起来。得到新链的头是A头，尾是B尾
+        /// </summary>
+        /// <param name="headb">A链上的任意节点</param>
+        /// <param name="heada">B链上的任意节点</param>
+        private void ConnectATailToBHead(V a, V b)
         {
-            ulong _idv1 = (ulong)idv1;
-            ulong _idv2 = (ulong)idv2;
-            if (idv1 > idv2)
+            string sql = $"update vertex set next={b.head} where idv={a.tail};"; // 连接A尾和B头
+            sql += $"update vertex set prev={a.tail} where idv={b.head};"; // 连接B头和A尾
+            sql += $"update vertex set tail={b.tail} where head={a.head};"; // 更新A链的尾节点为B尾
+            sql += $"update vertex set head={a.head} where head={b.head};"; // 更新B链的头节点为A头
+            ExecuteSql(sql);
+        }
+
+        /// <summary>
+        /// 反转一条链
+        /// </summary>
+        /// <param name="head"></param>
+        /// <param name="tail"></param>
+        private void RevertChain(int head, int tail)
+        {
+            string sql = $"update vertex set swap=next, next=prev where head={head};";
+            ExecuteSql(sql);
+            sql = $"update vertex set prev=swap, head={tail}, tail={head} where head={head};";
+            ExecuteSql(sql);
+        }
+
+        /// <summary>
+        /// 将某节点平移指定的偏移量
+        /// </summary>
+        /// <param name="idv">节点id</param>
+        /// <param name="dx">最大倍率下的x偏移分量</param>
+        /// <param name="dy">最大倍率下的y偏移分量</param>
+        public void MoveVertex(int idv, double dx, double dy)
+        {
+            var _ = QueryVertex(idv);
+            double x = _.x + dx;
+            double y = _.y + dy;
+            string sql = $"update vertex set x={x}, y={y} where idv={idv};";
+            ExecuteSql(sql);
+        }
+
+        public void DeleteVertex(int idv)
+        {
+            var v = QueryVertex(idv);
+
+            if (v.head != v.tail)
             {
-                ulong _ = _idv1;
-                _idv1 = _idv2;
-                _idv2 = _;
+                if (v.head == idv) // 删除头节点
+                {
+                    ExecuteSql($"update vertex set head={v.next.Info()} where head={idv};");
+                }
+                else if (v.tail == idv) // 删除尾节点
+                {
+                    ExecuteSql($"update vertex set tail={v.prev.Info()} where tail={idv};");
+                }
+                else // 删除中继节点
+                {
+                    var h = QueryVertex(v.head);
+                    var t = QueryVertex(v.tail);
+
+                    if (h.prev == t.idv && t.next == h.idv) // 环
+                    {
+                        ExecuteSql($"update vertex set head={v.next.Info()}, tail={v.prev.Info()} where head={h.idv};");
+                    }
+                    else // 链
+                    {
+                        int i = h.idv;
+                        while (i != idv)
+                        {
+                            var a = QueryVertex(i);
+                            ExecuteSql($"update vertex set tail={v.prev.Info()} where idv={i};");
+                            i = a.next.Value;
+                        }
+                        i = v.next.Value;
+                        while (i != t.idv)
+                        {
+                            var b = QueryVertex(i);
+                            ExecuteSql($"update vertex set head={v.next.Info()} where idv={i};");
+                            i = b.next.Value;
+                        }
+                        ExecuteSql($"update vertex set head={v.next.Info()} where idv={v.tail};");
+                    }
+                }
             }
-            ide = (_idv1 << 32) | _idv2;
+            ExecuteSql($"delete from vertex where idv={idv};"); // 删除孤立节点
         }
 
-        private void DecodeEdgeId(ulong ide, out uint idv1, out uint idv2)
+        public void LastId(out int? idv)
         {
-            idv1 = (uint)(ide >> 32);
-            idv2 = (uint)(ide & 0x0000_0000_ffff_ffff);
+            idv = null;
+            var q = conn.CreateCommand();
+            q.CommandText = $"select last_insert_rowid()";
+            using (var res = q.ExecuteReader())
+            {
+                while (res.Read())
+                {
+                    idv = res.GetInt32(0);
+                    break;
+                }
+            }
         }
 
-        public List<DisplayParameter> LoadRegionShapes(Viewport vp, double margin = 2)
+        private V QueryVertex(int idv)
+        {
+            V v = null;
+            var q = conn.CreateCommand();
+            q.CommandText = $"select * from vertex where idv={idv};";
+            using (var res = q.ExecuteReader())
+            {
+                while (res.Read())
+                {
+                    v = new V(
+                        idv,
+                        res.GetInt32OrNull(1),
+                        res.GetInt32OrNull(2),
+                        res.GetDouble(3),
+                        res.GetDouble(4),
+                        res.GetInt32(5),
+                        res.GetInt32(6)
+                    );
+                    break;
+                }
+            }
+            return v;
+        }
+
+        private void ListAll(out List<V> vertices, out List<E> edges)
+        {
+            var q = conn.CreateCommand();
+            q.CommandText = $"select * from vertex;";
+            vertices = new List<V>();
+            using (var res = q.ExecuteReader())
+            {
+                while (res.Read())
+                {
+                    var v = new V(
+                        res.GetInt32(0), 
+                        res.GetInt32OrNull(1), 
+                        res.GetInt32OrNull(2), 
+                        res.GetDouble(3), 
+                        res.GetDouble(4),
+                        res.GetInt32(5),
+                        res.GetInt32(6)
+                    );
+                    vertices.Add(v);
+                }
+            }
+
+            var q2 = conn.CreateCommand();
+            q2.CommandText = $"select * from edge;";
+            edges = new List<E>();
+            using (var res = q2.ExecuteReader())
+            {
+                while (res.Read())
+                {
+                    var e = new E(
+                        res.GetDouble(2),
+                        res.GetDouble(3),
+                        res.GetDouble(4),
+                        res.GetDouble(5));
+                    edges.Add(e);
+                }
+            }
+        }
+
+        private void ExecuteSql(string sql)
+        {
+            var stmt = conn.CreateCommand();
+            stmt.CommandText = sql;
+            stmt.ExecuteNonQuery();
+        }
+
+        public List<Object> LoadRegionShapes(Viewport vp, double margin = 2)
         {
             double left, top, right, bottom;
             left = vp.X - margin;
             top = vp.Y - margin;
             right = vp.X + vp.ToActualPixel(vp.OutW) + margin;
             bottom = vp.Y + vp.ToActualPixel(vp.OutH) + margin;
-            var toShow = new List<DisplayParameter>();
 
-            foreach (var v in V.Values)
+            var toShow = new List<Object>();
+            ListAll(out List<V> vertices, out List<E> edges);
+
+            foreach (var v in vertices)
             {
                 double x = v.x, y = v.y;
                 if (EncodePoint(left, top, right, bottom, x, y) == cINSIDE)
                 {
-                    toShow.Add(new BulletParameter()
-                    {
-                        id = v.id,
-                        ida = v.idl,
-                        idb = v.idr,
-                        x = v.x,
-                        y = v.y,
-                    });
+                    toShow.Add(v);
                 }
             }
 
-            foreach (var ide in E)
+            foreach (var e in edges)
             {
-                DecodeEdgeId(ide, out uint idv1, out uint idv2);
-                Vertex v1 = V[idv1], v2 = V[idv2];
-                double xa = v1.x, ya = v1.y, xb = v2.x, yb = v2.y;
+                double xa = e.xa, ya = e.ya, xb = e.xb, yb = e.yb;
                 ClipByWindow(
                     left, top, right, bottom,
                     xa, ya, xb, yb,
@@ -143,27 +360,12 @@ namespace PathFinder.Scene
                 {
                     if (x1 != x2 || y1 != y2)
                     {
-                        toShow.Add(new StickParameter(ide, x1, y1, x2, y2));
+                        toShow.Add(new E(x1, y1, x2, y2));
                     }
                 }
             }
 
             return toShow;
-        }
-
-        public void Clear()
-        {
-
-        }
-
-        public void Open(string path, object info)
-        {
-            
-        }
-
-        public void Save(string path, object info)
-        {
-
         }
 
         private const int cLEFT = 0b_0001;
@@ -254,6 +456,9 @@ namespace PathFinder.Scene
         /// <param name="y1"></param>
         /// <param name="x2"></param>
         /// <param name="y2"></param>
+        /// TODO: 改良「碰撞检测」部分，先用「跨立法」检测是否与矩形四边相交，再求交点
+        /// 参照 https://www.cnblogs.com/Duahanlang/archive/2013/05/11/3073434.html
+        /// 和  https://www.cnblogs.com/Duahanlang/archive/2013/05/11/3073434.html
         public static void ClipByWindow(
             double left, double top, double right, double bottom,
             double xa, double ya, double xb, double yb,
@@ -546,33 +751,5 @@ namespace PathFinder.Scene
             }
         }
     }
-
-    abstract class DisplayParameter { }
-
-    class BulletParameter : DisplayParameter
-    {
-        public uint id;
-        public uint ida;
-        public uint idb;
-        public double x;
-        public double y;
-    }
-
-    class StickParameter : DisplayParameter
-    {
-        public ulong id;
-        public double x1;
-        public double y1;
-        public double x2;
-        public double y2;
-
-        public StickParameter(ulong id, double x1, double y1, double x2, double y2)
-        {
-            this.id = id;
-            this.x1 = x1;
-            this.y1 = y1;
-            this.x2 = x2;
-            this.y2 = y2;
-        }
-    }
 }
+#pragma warning restore CA2100 // 检查 SQL 查询是否存在安全漏洞

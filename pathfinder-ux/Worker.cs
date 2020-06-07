@@ -52,6 +52,7 @@ namespace PathFinder
             poly = new PolylineAnnotation();
             th = new Thread(new ThreadStart(Work));
             (this.thumbMaxW, this.thumbMaxH) = (thumbMaxW, thumbMaxH);
+
         }
 
         public void Start()
@@ -66,8 +67,8 @@ namespace PathFinder
 
         private void Work()
         {
-            Viewport v0 = new Viewport();
-            Viewport v1 = new Viewport();
+            Viewport viewport_prev = new Viewport();
+            Viewport viewport_curr = new Viewport();
             bool drew = false;
             while (true)
             {
@@ -99,48 +100,46 @@ namespace PathFinder
                         else if (act is ZoomMessage)
                         {
                             var a = act as ZoomMessage;
-                            v1.Zoom(a.nScroll, a.XScreen, a.YScreen);
+                            viewport_curr.Zoom(a.nScroll, a.XScreen, a.YScreen);
                         }
                         else if (act is ResizeMessage)
                         {
                             var a = act as ResizeMessage;
-                            v1.Resize(a.WScreen, a.HScreen);
+                            viewport_curr.Resize(a.WScreen, a.HScreen);
                         }
                         else if (act is ThumbJumpMessage)
                         {
                             var a = act as ThumbJumpMessage;
-                            v1.X = a.CenterXScreen * thumbDensity - v1.ToActualPixel(v1.OutW) / 2;
-                            v1.Y = a.CenterYScreen * thumbDensity - v1.ToActualPixel(v1.OutH) / 2;
+                            viewport_curr.X = a.CenterXScreen * thumbDensity - viewport_curr.ToActualPixel(viewport_curr.OutW) / 2;
+                            viewport_curr.Y = a.CenterYScreen * thumbDensity - viewport_curr.ToActualPixel(viewport_curr.OutH) / 2;
                         }
                     }
                     else if (act is PolylineMessage)
                     {
                         drew = true;
-                        if (act is VertexMessage)
+                        if (act is AddVertexMessage)
                         {
-                            var a = act as VertexMessage;
-                            double x = v1.X + v1.ToActualPixel(a.X);
-                            double y = v1.Y + v1.ToActualPixel(a.Y);
-                            poly.Bullet(x, y, a.IdV);
+                            var a = act as AddVertexMessage;
+                            double x = viewport_curr.X + viewport_curr.ToActualPixel(a.x);
+                            double y = viewport_curr.Y + viewport_curr.ToActualPixel(a.y);
+                            poly.AddVertex(a.idv, x, y, a.prev);
                         }
-                        else if (act is EdgeMessgae)
+                        else if (act is ConnectVertexMessage)
                         {
-                            var a = act as EdgeMessgae;
-                            double x = v1.X + v1.ToActualPixel(a.X);
-                            double y = v1.Y + v1.ToActualPixel(a.Y);
-                            poly.Stick(x, y, a.IdV1, a.IdV2);
+                            var a = act as ConnectVertexMessage;
+                            poly.ConnectVertex(a.idv1, a.idv2);
                         }
                         else if (act is MoveVertexMessgae)
                         {
                             var a = act as MoveVertexMessgae;
-                            double dx_slide = v1.ToActualPixel(a.dXScreen);
-                            double dy_slide = v1.ToActualPixel(a.dYScreen);
-                            poly.MoveVertex(a.IdV, dx_slide, dy_slide);
+                            double dx = viewport_curr.ToActualPixel(a.dx);
+                            double dy = viewport_curr.ToActualPixel(a.dy);
+                            poly.MoveVertex(a.idv, dx, dy);
                         }
                         else if (act is DeleteVertexMessage)
                         {
                             var a = act as DeleteVertexMessage;
-                            poly.DeleteVertex(a.IdV);
+                            poly.DeleteVertex(a.idv);
                         }
                     }
                     else if (act is FileMessage)
@@ -148,9 +147,9 @@ namespace PathFinder
                         if (act is LoadSlideMessage)
                         {
                             var a = act as LoadSlideMessage;
-                            slide.Open(a.Path, v1);
-                            v1.OutW = a.WCanvas;
-                            v1.OutH = a.HCanvas;
+                            slide.Open(a.Path, viewport_curr);
+                            viewport_curr.OutW = a.WCanvas;
+                            viewport_curr.OutH = a.HCanvas;
                             canvasThumb.Dispatcher.Invoke(() =>
                             {
                                 using (var ms = new System.IO.MemoryStream(slide.LoadThumbJPG()))
@@ -160,7 +159,7 @@ namespace PathFinder
                                     bi.CacheOption = BitmapCacheOption.OnLoad;
                                     bi.StreamSource = ms;
                                     bi.EndInit();
-                                    UniformToFill(v1.SlideW, v1.SlideH, 
+                                    UniformToFill(viewport_curr.SlideW, viewport_curr.SlideH, 
                                         out double thumbW, out double thumbH);
                                     (canvasThumb.Width, canvasThumb.Height) = (thumbW, thumbH);
                                     canvasThumb.UpdateLayout();
@@ -177,28 +176,28 @@ namespace PathFinder
                     }
                 }
 
-                v1.Move(dX, dY);
+                viewport_curr.Move(dX, dY);
 
                 // 只有画面的几何信息发生变化才合成新的帧.
-                if (v1.GetHashCode() != v0.GetHashCode() || drew)
+                if (viewport_curr.GetHashCode() != viewport_prev.GetHashCode() || drew)
                 {
-                    byte[] img = slide.LoadRegionBMP(v1);
-                    List<DisplayParameter> items = poly.LoadRegionShapes(v1);
+                    byte[] img = slide.LoadRegionBMP(viewport_curr);
+                    List<Object> items = poly.LoadRegionShapes(viewport_curr);
                     canvasMain.Dispatcher.Invoke(() =>
                     {
                         #region 重新绘制矢量物体
                         canvasMain.Children.Clear();
                         foreach (var item in items)
                         {
-                            if (item is BulletParameter)
+                            if (item is V)
                             {
-                                var bp = item as BulletParameter;
-                                DrawBullet(bp, v1);
+                                var v = item as V;
+                                DrawVertex(v, viewport_curr);
                             }
-                            else if (item is StickParameter)
+                            else if (item is E)
                             {
-                                var sp = item as StickParameter;
-                                DrawStick(sp, v1);
+                                var e = item as E;
+                                DrawEdge(e, viewport_curr);
                             }
                         }
                         canvasMain.UpdateLayout();
@@ -220,9 +219,9 @@ namespace PathFinder
                     canvasThumb.Dispatcher.Invoke(() =>
                     {
                         canvasThumb.Children.Clear();
-                        DrawOnThumb(canvasThumb, v1);
+                        DrawOnThumb(canvasThumb, viewport_curr);
                     });
-                    v0.CopyFrom(v1);
+                    viewport_prev.CopyFrom(viewport_curr);
                     drew = false;
                 }
                 
@@ -308,43 +307,71 @@ namespace PathFinder
             }
         }
 
-        private void DrawBullet(BulletParameter bp, Viewport v)
+        private void DrawVertex(V v, Viewport vp)
         {
-            double x = v.ToDisplayPixel(bp.x - v.X);
-            double y = v.OutH - v.ToDisplayPixel(bp.y - v.Y);
-
+            double x = vp.ToDisplayPixel(v.x - vp.X);
+            double y = vp.OutH - vp.ToDisplayPixel(v.y - vp.Y);
+            double r = 12, d = r * 2;
             Ellipse bullet = new Ellipse();
-            bullet.SetValue(Canvas.LeftProperty, x - 8);
-            bullet.SetValue(Canvas.TopProperty, y - 8);
+            bullet.SetValue(Canvas.LeftProperty, x - r);
+            bullet.SetValue(Canvas.TopProperty, y - r);
             bullet.SetValue(Canvas.ZIndexProperty, 1);
-            bullet.Height = 16;
-            bullet.Width = 16;
+            bullet.Height = d;
+            bullet.Width = d;
             bullet.Fill = new SolidColorBrush(Color.FromRgb(246, 246, 233));
             bullet.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
-            bullet.StrokeThickness = 4;
+            bullet.StrokeThickness = 3;
 
-            bullet.DataContext = (bp.id, bp.ida, bp.idb);
-            //Console.WriteLine($"v={bp.id}, a={bp.ida}, b={bp.idb}");
+            Label label = new Label();
+            string hint = null;
+            if (v.idv == v.head && v.idv != v.tail)
+            {
+                hint = $"头【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n尾={v.tail}";
+            }
+            else if (v.idv == v.tail && v.idv != v.head)
+            {
+                hint = $"尾【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}";
+            }
+            else if (v.idv == v.head && v.idv == v.tail)
+            {
+                hint = $"孤立【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
+            }
+            else
+            {
+                hint = $"中继【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
+            }
+            label.Content = hint;
+            label.SetValue(Canvas.LeftProperty, x);
+            label.SetValue(Canvas.TopProperty, y);
+            label.SetValue(Canvas.ZIndexProperty, 1);
+            var rotate = new RotateTransform(180);
+            var flip = new ScaleTransform(-1, 1);
+            var tf = new TransformGroup();
+            tf.Children.Add(rotate);
+            tf.Children.Add(flip);
+            label.RenderTransform = tf;
+            canvasMain.Children.Add(label);
+
+            bullet.DataContext = v;
             canvasMain.Children.Add(bullet);
         }
 
-        private void DrawStick(StickParameter sp, Viewport v)
+        private void DrawEdge(E e, Viewport vp)
         {
             //Console.WriteLine($"StickParameter {sp.x1} {sp.y1} {sp.x2} {sp.y2}");
-            double x1 = v.ToDisplayPixel(sp.x1 - v.X);
-            double y1 = v.OutH - v.ToDisplayPixel(sp.y1 - v.Y);
-            double x2 = v.ToDisplayPixel(sp.x2 - v.X);
-            double y2 = v.OutH - v.ToDisplayPixel(sp.y2 - v.Y);
+            double x1 = vp.ToDisplayPixel(e.xa - vp.X);
+            double y1 = vp.OutH - vp.ToDisplayPixel(e.ya - vp.Y);
+            double x2 = vp.ToDisplayPixel(e.xb - vp.X);
+            double y2 = vp.OutH - vp.ToDisplayPixel(e.yb - vp.Y);
 
             //Console.WriteLine($"DrawStick #{sp.id} at ({x1:.0},{y1:.0})-({x2:.0},{y2:.0})");
 
             Line l = new Line();
             (l.X1, l.Y1, l.X2, l.Y2) = (x1, y1, x2, y2);
             l.SetValue(Canvas.ZIndexProperty, 0);
-            l.StrokeThickness = 4;
+            l.StrokeThickness = 3;
             l.Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51));
-
-            l.DataContext = sp.id;
+            
             canvasMain.Children.Add(l);
         }
     }

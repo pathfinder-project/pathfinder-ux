@@ -2,6 +2,7 @@
 
 namespace PathFinder
 {
+    using Ctx = Tuple<int, int?, int?>;
 
     abstract class Message { }
 
@@ -53,31 +54,30 @@ namespace PathFinder
     #region 画笔消息
     abstract class PolylineMessage : Message { }
 
-    class VertexMessage : PolylineMessage
+    class AddVertexMessage : PolylineMessage
     {
-        public double X;
-        public double Y;
-        public uint IdV;
+        public double x; // 屏幕上的横坐标
+        public double y; // 屏幕上的纵坐标
+        public int idv; // 由前端分配的id
+        public int? prev = null; // 上一个点。如果非null，则把新点和上一个点连起来
     }
 
-    class EdgeMessgae : PolylineMessage
+    class ConnectVertexMessage : PolylineMessage
     {
-        public double X;
-        public double Y;
-        public uint IdV1;
-        public uint IdV2;
+        public int idv1;
+        public int idv2;
     }
 
     class MoveVertexMessgae : PolylineMessage
     {
-        public uint IdV;
-        public double dXScreen;
-        public double dYScreen;
+        public int idv;
+        public double dx; // 屏幕上的x偏移量
+        public double dy; // 屏幕上的y偏移量
     }
 
     class DeleteVertexMessage: PolylineMessage
     {
-        public uint IdV;
+        public int idv;
     }
 
     
