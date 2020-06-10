@@ -1,7 +1,7 @@
-﻿using PathFinder.Algorithm;
-using PathFinder.Scene;
+﻿using PathFinder.Scene;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,7 +11,6 @@ using System.Windows.Shapes;
 
 namespace PathFinder
 {
-
     class Worker
     {
         #region 这些对象为UI线程所持有
@@ -19,6 +18,7 @@ namespace PathFinder
         private Canvas canvasThumb;
         private ImageBrush imageMain;
         private ImageBrush imageThumb;
+        private TextBlock scoreBoard;
         #endregion
 
         // UI和工作线程的通信队列
@@ -38,7 +38,11 @@ namespace PathFinder
         private PolylineAnnotation poly;
         #endregion
 
-        public Worker(Canvas canvasMain, Canvas canvasThumb, 
+        #region 量化相关
+        private Dictionary<int, Ki67Task> quantTasks;
+        #endregion
+
+        public Worker(Canvas canvasMain, Canvas canvasThumb, TextBlock scoreBoard,
             ImageBrush imageMain, ImageBrush imageThumb, 
             int fps, double thumbMaxW, double thumbMaxH)
         {
@@ -46,13 +50,14 @@ namespace PathFinder
             this.canvasThumb = canvasThumb;
             this.imageMain = imageMain;
             this.imageThumb = imageThumb;
+            this.scoreBoard = scoreBoard;
             period = (long)(1000.0 / fps);
             msgq = MessageQueue.GetInstance();
             slide = new Slide();
             poly = new PolylineAnnotation();
-            th = new Thread(new ThreadStart(Work));
             (this.thumbMaxW, this.thumbMaxH) = (thumbMaxW, thumbMaxH);
-
+            quantTasks = new Dictionary<int, Ki67Task>();
+            th = new Thread(new ThreadStart(Work));
         }
 
         public void Start()
@@ -142,6 +147,28 @@ namespace PathFinder
                             poly.DeleteVertex(a.idv);
                         }
                     }
+                    else if (act is ComputeMessage)
+                    {
+                        if (act is Ki67Message)
+                        {
+                            var a = act as Ki67Message;
+                            if (!quantTasks.ContainsKey(a.idv))
+                            {
+                                poly.QueryChain(a.idv, out List<double> x, out List<double> y, out BoundingBox bb);
+                                byte[] data = slide.LoadRegionBMP(bb);
+
+                                //using (var fs = new FileStream(@"C:\Users\winston\Pictures\aaa.bmp", FileMode.Create))
+                                //{
+                                //    fs.Write(data, 0, data.Length);
+                                //}
+
+                                var task = new Ki67Task(a.idv, data, x, y);
+
+                                quantTasks.Add(a.idv, task);
+                                task.Start();
+                            }
+                        }
+                    }
                     else if (act is FileMessage)
                     {
                         if (act is LoadSlideMessage)
@@ -178,52 +205,73 @@ namespace PathFinder
 
                 viewport_curr.Move(dX, dY);
 
-                // 只有画面的几何信息发生变化才合成新的帧.
-                if (viewport_curr.GetHashCode() != viewport_prev.GetHashCode() || drew)
+                #region 摆放前端对象
+                byte[] img = slide.LoadRegionBMP(viewport_curr);
+                List<Object> items = poly.LoadRegionShapes(viewport_curr);
+                canvasMain.Dispatcher.Invoke(() =>
                 {
-                    byte[] img = slide.LoadRegionBMP(viewport_curr);
-                    List<Object> items = poly.LoadRegionShapes(viewport_curr);
-                    canvasMain.Dispatcher.Invoke(() =>
+                    #region 重新绘制矢量物体
+                    canvasMain.Children.Clear();
+                    foreach (var item in items)
                     {
-                        #region 重新绘制矢量物体
-                        canvasMain.Children.Clear();
-                        foreach (var item in items)
+                        if (item is V)
                         {
-                            if (item is V)
-                            {
-                                var v = item as V;
-                                DrawVertex(v, viewport_curr);
-                            }
-                            else if (item is E)
-                            {
-                                var e = item as E;
-                                DrawEdge(e, viewport_curr);
-                            }
+                            var v = item as V;
+                            DrawVertex(v, viewport_curr);
                         }
-                        canvasMain.UpdateLayout();
-                        #endregion
+                        else if (item is E)
+                        {
+                            var e = item as E;
+                            DrawEdge(e, viewport_curr);
+                        }
+                    }
+                    canvasMain.UpdateLayout();
+                    #endregion
 
-                        #region 重新绘制位图
-                        BitmapImage bi = null;
-                        using (var ms = new System.IO.MemoryStream(img))
-                        {
-                            bi = new BitmapImage();
-                            bi.BeginInit();
-                            bi.CacheOption = BitmapCacheOption.OnLoad;
-                            bi.StreamSource = ms;
-                            bi.EndInit();
-                        }
-                        imageMain.ImageSource = bi;
-                        #endregion
-                    }, System.Windows.Threading.DispatcherPriority.Send);
-                    canvasThumb.Dispatcher.Invoke(() =>
+                    #region 重新绘制位图
+                    BitmapImage bi = null;
+                    using (var ms = new System.IO.MemoryStream(img))
                     {
-                        canvasThumb.Children.Clear();
-                        DrawOnThumb(canvasThumb, viewport_curr);
-                    });
-                    viewport_prev.CopyFrom(viewport_curr);
-                    drew = false;
+                        bi = new BitmapImage();
+                        bi.BeginInit();
+                        bi.CacheOption = BitmapCacheOption.OnLoad;
+                        bi.StreamSource = ms;
+                        bi.EndInit();
+                    }
+                    imageMain.ImageSource = bi;
+                    #endregion
+                }, System.Windows.Threading.DispatcherPriority.Send);
+                canvasThumb.Dispatcher.Invoke(() =>
+                {
+                    canvasThumb.Children.Clear();
+                    DrawOnThumb(canvasThumb, viewport_curr);
+                }, System.Windows.Threading.DispatcherPriority.Send);
+                viewport_prev.CopyFrom(viewport_curr);
+
+                var scores = new Dictionary<int, double>();
+                var to_remove = new List<int>();
+                foreach (var _ in quantTasks)
+                {
+                    var t = _.Value;
+                    if (!double.IsNaN(t.Result))
+                    {
+                        scores.Add(t.HeadId, t.Result);
+                        to_remove.Add(t.HeadId);
+                    }
                 }
+
+                foreach (var _ in to_remove)
+                {
+                    quantTasks.Remove(_);
+                }
+
+                scoreBoard.Dispatcher.Invoke(() =>
+                {
+                    foreach (var _ in scores)
+                    {
+                        scoreBoard.Text = $"PolygonId: {_.Key}. Ki67={(int)(_.Value * 100)}%\r\n";
+                    }
+                }, System.Windows.Threading.DispatcherPriority.Send);
                 
                 // 如果end-beg小于period, 则忙等到period
                 for (long end = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // 当前帧结束的时间
@@ -232,6 +280,7 @@ namespace PathFinder
                 {
                     Thread.Sleep(1); // 降低cpu占用率. 改善阅览体验.
                 }
+                #endregion
             }
         }
 
@@ -322,35 +371,36 @@ namespace PathFinder
             bullet.Stroke = new SolidColorBrush(Color.FromRgb(217, 83, 79));
             bullet.StrokeThickness = 3;
 
-            Label label = new Label();
-            string hint = null;
-            if (v.idv == v.head && v.idv != v.tail)
-            {
-                hint = $"头【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n尾={v.tail}";
-            }
-            else if (v.idv == v.tail && v.idv != v.head)
-            {
-                hint = $"尾【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}";
-            }
-            else if (v.idv == v.head && v.idv == v.tail)
-            {
-                hint = $"孤立【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
-            }
-            else
-            {
-                hint = $"中继【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
-            }
-            label.Content = hint;
-            label.SetValue(Canvas.LeftProperty, x);
-            label.SetValue(Canvas.TopProperty, y);
-            label.SetValue(Canvas.ZIndexProperty, 1);
-            var rotate = new RotateTransform(180);
-            var flip = new ScaleTransform(-1, 1);
-            var tf = new TransformGroup();
-            tf.Children.Add(rotate);
-            tf.Children.Add(flip);
-            label.RenderTransform = tf;
-            canvasMain.Children.Add(label);
+            
+            //Label label = new Label();
+            //string hint = null;
+            //if (v.idv == v.head && v.idv != v.tail)
+            //{
+            //    hint = $"头【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n尾={v.tail}";
+            //}
+            //else if (v.idv == v.tail && v.idv != v.head)
+            //{
+            //    hint = $"尾【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}";
+            //}
+            //else if (v.idv == v.head && v.idv == v.tail)
+            //{
+            //    hint = $"孤立【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
+            //}
+            //else
+            //{
+            //    hint = $"中继【{v.idv}】\n前={v.prev.Info()}，后={v.next.Info()}\n头={v.head}，尾={v.tail}";
+            //}
+            //label.Content = hint;
+            //label.SetValue(Canvas.LeftProperty, x);
+            //label.SetValue(Canvas.TopProperty, y);
+            //label.SetValue(Canvas.ZIndexProperty, 1);
+            //var rotate = new RotateTransform(180);
+            //var flip = new ScaleTransform(-1, 1);
+            //var tf = new TransformGroup();
+            //tf.Children.Add(rotate);
+            //tf.Children.Add(flip);
+            //label.RenderTransform = tf;
+            //canvasMain.Children.Add(label);
 
             bullet.DataContext = v;
             canvasMain.Children.Add(bullet);
@@ -376,3 +426,4 @@ namespace PathFinder
         }
     }
 }
+

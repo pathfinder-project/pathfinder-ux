@@ -1,11 +1,11 @@
 ﻿using OpenSlideNET;
-using PathFinder.Algorithm;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 
 namespace PathFinder.Scene
 {
@@ -23,13 +23,25 @@ namespace PathFinder.Scene
         /// <summary>
         /// 根据sg所描述的位置、大小和倍率, 读取一个区域
         /// </summary>
-        /// <param name="sg"></param>
+        /// <param name="view"></param>
         /// <returns></returns>
-        public byte[] LoadRegionBMP(Viewport sg)
+        public byte[] LoadRegionBMP(Viewport view)
         {
-            Helper.InitBgraHeader(imgBmpBuf, (int)sg.OutW, (int)sg.OutH);
-            img.DangerousReadRegion(sg.L, (int)sg.X, (int)sg.Y, (int)sg.OutW, (int)sg.OutH, ref imgBmpBuf[Helper.BMP_BGRA_DATA_OFFSET]);
+            Helper.InitBgraHeader(imgBmpBuf, (int)view.OutW, (int)view.OutH);
+            img.DangerousReadRegion(view.L, (int)view.X, (int)view.Y, (int)view.OutW, (int)view.OutH, ref imgBmpBuf[Helper.BMP_BGRA_DATA_OFFSET]);
             return imgBmpBuf;
+        }
+
+        public byte[] LoadRegionBMP(BoundingBox bb)
+        {
+            int x = (int)bb.x1;
+            int y = (int)bb.y1;
+            int w = (int)(bb.x2 - bb.x1 + 1);
+            int h = (int)(bb.y2 - bb.y1 + 1);
+            byte[] buf = new byte[Helper.BMP_BGRA_DATA_OFFSET + w * h * 4];
+            Helper.InitBgraHeader(buf, w, h);
+            img.DangerousReadRegion(0, x, y, w, h, ref buf[Helper.BMP_BGRA_DATA_OFFSET]);
+            return buf;
         }
 
         public byte[] LoadThumbJPG()

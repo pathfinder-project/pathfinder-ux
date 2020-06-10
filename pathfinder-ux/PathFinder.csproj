@@ -147,9 +147,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Extension.cs" />
+    <Compile Include="Ki67Task.cs" />
     <Compile Include="MessageQueue.cs" />
     <Compile Include="Messages.cs" />
-    <Compile Include="OrderedLinearList.cs" />
     <Compile Include="Viewport.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="OpenSlideNET\DeepZoomGenerator.cs" />

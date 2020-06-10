@@ -108,11 +108,13 @@
                     </Canvas.Background>
                 </Canvas>
             </Grid>
-            <TabControl Grid.Row="1" x:Name="tabControlRightUpper" Margin="0">
-                <TabItem x:Name="tab_properties"  Header="属性">
-                </TabItem>
-            </TabControl>
-            
+            <Grid Grid.Row="1" Background="#F4F0E6">
+                <TextBlock x:Name="Ki67ScoreBoard"
+                       HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" 
+                       TextWrapping="Wrap"/>
+            </Grid>
+
+
         </Grid>
         <Grid Grid.Row="1" Grid.Column="1" Panel.ZIndex="255">
             <Canvas x:Name="CanvasMain"

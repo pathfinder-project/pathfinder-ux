@@ -80,6 +80,15 @@ namespace PathFinder
         public int idv;
     }
 
-    
+
+    #endregion
+
+    #region 计算消息
+    abstract class ComputeMessage : Message { }
+
+    class Ki67Message : ComputeMessage 
+    {
+        public int idv;
+    }
     #endregion
 }

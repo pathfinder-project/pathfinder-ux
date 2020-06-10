@@ -1,5 +1,4 @@
-﻿using PathFinder.Algorithm;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,6 +47,14 @@ namespace PathFinder
             this.xb = xb;
             this.yb = yb;
         }
+    }
+    
+    class BoundingBox
+    {
+        public double x1;
+        public double y1;
+        public double x2;
+        public double y2;
     }
 
     class PolylineAnnotation
@@ -280,6 +287,27 @@ namespace PathFinder
                 }
             }
             return v;
+        }
+
+        public void QueryChain(int idv, out List<double> x, out List<double> y, out BoundingBox bb)
+        {
+            var _ = QueryVertex(idv);
+            x = new List<double>();
+            y = new List<double>();
+            bb = new BoundingBox();
+            int? id = _.head;
+            int? guard = id;
+            do
+            {
+                var v = QueryVertex(id.Value);
+                x.Add(v.x);
+                y.Add(v.y);
+                id = v.next;
+            } while (id != null && id != guard);
+            bb.x1 = x.Min();
+            bb.y1 = y.Min();
+            bb.x2 = x.Max();
+            bb.y2 = y.Max();
         }
 
         private void ListAll(out List<V> vertices, out List<E> edges)

@@ -43,8 +43,8 @@ namespace PathFinder
         private int idv_pool = 1;
         #endregion
 
-        private Stack<Cursor> cursorHistory;
 
+        private Stack<Cursor> cursorHistory;
 
         public PathFinderMainWindow()
         {
@@ -54,11 +54,11 @@ namespace PathFinder
             double thumbMaxWidth = (double)this.Resources["thumbMaxWidth"];
             double thumbMaxHeight = (double)this.Resources["thumbMaxHeight"];
             //Console.WriteLine($"{thumbMaxWidth}, {thumbMaxHeight}");
-            blender = new Worker(CanvasMain, CanvasThumb, CanvasMainImage, CanvasThumbImage,
+            blender = new Worker(CanvasMain, CanvasThumb, Ki67ScoreBoard, CanvasMainImage, CanvasThumbImage, 
                 15, thumbMaxWidth, thumbMaxHeight);
             CanvasBackground.Visibility = Visibility.Hidden;
             operation = Idle;
-
+            
             cursorHistory = new Stack<Cursor>();
         }
 
@@ -136,8 +136,22 @@ namespace PathFinder
 
             if (operation == Browsing)
             {
-                StartDragSlide(p);
-                PushCursor(Cursors.ScrollAll);
+                if (e.ClickCount == 1)
+                {
+                    StartDragSlide(p);
+                    PushCursor(Cursors.ScrollAll);
+                }
+                else if (e.ClickCount == 2)
+                {
+                    if (t is Ellipse)
+                    {
+                        var bullet = t as Ellipse;
+                        var ctx = (V)bullet.DataContext;
+                        var act = new Ki67Message();
+                        act.idv = ctx.idv;
+                        aq.Submit(act);
+                    }
+                }
             }
             else if (operation == Polyline)
             {
@@ -303,6 +317,15 @@ namespace PathFinder
             act.nScroll = scroll;
             (act.XScreen, act.YScreen) = (x1s, y1s);
             aq.Submit(act);
+        }
+
+        private void Bullet_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (operation == Browsing && e.ClickCount == 2)
+            {
+                var bullet = sender as Ellipse;
+                
+            }
         }
 
 
